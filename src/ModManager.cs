@@ -155,42 +155,11 @@ namespace Euterpe
             LoggerInstance.Msg("=========== Euterpe Scanner Completed ===========");
 
             if (requiresUpdate)
-            {                               
-                string msgBuilder = "";
+            {
+                // Initialize i18n (detects game language automatically)
+                I18n.Initialize();
                 
-                // 多语言设定库位置
-                var langEnum = Il2CppAssets.Scripts.Database.GlobalDataBase.s_DbUi.curLanguageIndex;
-                string internalLang = langEnum.ToString().ToLower();
-                int langInt = (int)langEnum;
-                
-                // 记录底层传回来的绝对值，防止 IL2CPP 把枚举名字吞了变成纯数字
-                LoggerInstance.Msg($"[Euterpe Auto-Locale] Internal Lang: {internalLang} (Int ID: {langInt})");
-                
-                if (internalLang.Contains("english") || langInt == 1)
-                {
-                    msgBuilder = "Mod updates available.\nProceed to the <color=#42A5F5>Euterpe</color> desktop client to update?";
-                }
-                else if (internalLang.Contains("japanese") || langInt == 4 || internalLang == "jp")
-                {
-                    msgBuilder = "MODの更新があります。\n<color=#42A5F5>Euterpe</color> デスクトップで更新しますか？";
-                }
-                else if (internalLang.Contains("korean") || langInt == 5 || internalLang == "kr")
-                {
-                    msgBuilder = "모드 업데이트가 있습니다.\n<color=#42A5F5>Euterpe</color> 데스크톱에서 업데이트하시겠습니까?";
-                }
-                else if (internalLang.Contains("chineset") || internalLang.Contains("traditional") || langInt == 3)
-                {
-                    msgBuilder = "有MOD更新可用\n是否前往<color=#42A5F5>Euterpe</color>桌面端進行更新？";
-                }
-                else if (internalLang.Contains("chineses") || internalLang.Contains("simplified") || internalLang.Contains("chinese") || langInt == 2 || langInt == 0)
-                {
-                    msgBuilder = "有MOD更新可用\n是否前往<color=#42A5F5>Euterpe</color>桌面端进行更新？";
-                }
-                else
-                {
-                    // 回退策略
-                    msgBuilder = "Mod updates available.\nProceed to the <color=#42A5F5>Euterpe</color> desktop client to update?";
-                }
+                string msgBuilder = I18n.Get("update.available");
 
                 CommonMessageBox.ShowConfrimAndCancelWithShut(msgBuilder, _il2cppConfirm, _il2cppCancel);
 
