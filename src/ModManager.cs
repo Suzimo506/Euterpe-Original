@@ -9,9 +9,9 @@ using HarmonyLib; //负责运行时方法拦截与字节码劫持
 using UnityEngine.Networking; //提供异步 HTTP 请求支持
 using System.Collections; //提供协程 IEnumerator 支持
 
-namespace ModManager
+namespace Euterpe
 {
-    public class Main : MelonMod
+    public class ModManager : MelonMod
     {
         // ----- 本地配置项持久化声明 -----
         private static MelonPreferences_Category _configCategory;
@@ -29,24 +29,24 @@ namespace ModManager
         internal bool _hasCheckedUpdate = false;
 
         // 静态单例暴露，供静态拦截器回访
-        public static Main Instance { get; private set; }
+        public static ModManager Instance { get; private set; }
 
         public override void OnInitializeMelon()
         {
             Instance = this;
-            LoggerInstance.Msg("ModManager Auto-Updater Core System Initialized!");
+            LoggerInstance.Msg("Euterpe Auto-Updater Core System Initialized!");
 
             // 需依照 MelonLoader 标准进行 IO 的落盘。如果宿主本地尚无 UserData 定义环境，将隐式生成并载入默认属性。
-            _configCategory = MelonPreferences.CreateCategory("ModManager");
+            _configCategory = MelonPreferences.CreateCategory("Euterpe");
             EnableUpdatePopup = _configCategory.CreateEntry<bool>("EnableAutoUpdateCheck", true);
 
             // 确认回调：唤起外置更新程序并中止当前游戏进程。
             _onConfirmAction = new System.Action(() =>
             {
                 IsPopupLockActive = false; // 释放拦截锁
-                LoggerInstance.Msg("============ [ ModManager Interaction ] ============");
+                LoggerInstance.Msg("============ [ Euterpe Interaction ] ============");
                 LoggerInstance.Msg("-> User Action: Action [CONFIRM] dispatched successfully.");
-                LoggerInstance.Msg("-> Result: Launching ModManager Updater DeepLink protocol & Terminating current Game Process.");
+                LoggerInstance.Msg("-> Result: Launching Euterpe Updater DeepLink protocol & Terminating current Game Process.");
                 LoggerInstance.Msg("=================================================");
                 Application.OpenURL("Euterpe://go/modding/manage");
                 Application.Quit();
@@ -56,7 +56,7 @@ namespace ModManager
             _onCancelAction = new System.Action(() =>
             {
                 IsPopupLockActive = false; // 释放拦截锁
-                LoggerInstance.Msg("============ [ ModManager Interaction ] ============");
+                LoggerInstance.Msg("============ [ Euterpe Interaction ] ============");
                 LoggerInstance.Msg("-> User Action: Action [CANCEL] or Panel Dismissed by user.");
                 LoggerInstance.Msg("-> Result: Alert Panel Terminated. Resuming main thread logic.");
                 LoggerInstance.Msg("=================================================");
@@ -67,6 +67,13 @@ namespace ModManager
 
             // 启动页面探测协程
             MelonCoroutines.Start(WaitForHomePage());
+        }
+
+        public override void OnLateInitializeMelon()
+        {
+            // 在所有 Mod (包括排在后面的 Headquarters) 都初始化并打完补丁后，
+            // 剥夺它的权限，并贴上我们的补丁。
+            Headquarters.Init();
         }
 
         public override void OnUpdate()
@@ -104,7 +111,7 @@ namespace ModManager
 
         private IEnumerator FetchApiCoroutine()
         {
-            LoggerInstance.Msg("=========== ModManager Scanner Started ===========");
+            LoggerInstance.Msg("=========== Euterpe Scanner Started ===========");
 
             var installedMods = new System.Collections.Generic.Dictionary<string, string>();
 
@@ -145,7 +152,7 @@ namespace ModManager
             // 测试强制触发更新弹窗
             requiresUpdate = true; 
 
-            LoggerInstance.Msg("=========== ModManager Scanner Completed ===========");
+            LoggerInstance.Msg("=========== Euterpe Scanner Completed ===========");
 
             if (requiresUpdate)
             {                               
@@ -157,7 +164,7 @@ namespace ModManager
                 int langInt = (int)langEnum;
                 
                 // 记录底层传回来的绝对值，防止 IL2CPP 把枚举名字吞了变成纯数字
-                LoggerInstance.Msg($"[ModManager Auto-Locale] Internal Lang: {internalLang} (Int ID: {langInt})");
+                LoggerInstance.Msg($"[Euterpe Auto-Locale] Internal Lang: {internalLang} (Int ID: {langInt})");
                 
                 if (internalLang.Contains("english") || langInt == 1)
                 {
@@ -227,7 +234,7 @@ namespace ModManager
         public static bool Prefix()
         {
             // 视当前挂起标记返回 false 进行原生执行流切断。
-            return !Main.IsPopupLockActive; 
+            return !ModManager.IsPopupLockActive; 
         }
     }
 
@@ -237,7 +244,7 @@ namespace ModManager
     {
         public static bool Prefix()
         {
-            return !Main.IsPopupLockActive;
+            return !ModManager.IsPopupLockActive;
         }
     }
 }

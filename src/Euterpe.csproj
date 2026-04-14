@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <DefaultItemExcludes>ModManager\**;$(DefaultItemExcludes)</DefaultItemExcludes>
+    <DefaultItemExcludes>Euterpe\**;$(DefaultItemExcludes)</DefaultItemExcludes>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -48,6 +48,12 @@
     </Reference>
     <Reference Include="Il2CppSirenix.Serialization">
       <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Il2CppSirenix.Serialization.dll</HintPath>
+    </Reference>
+    <Reference Include="CustomAlbums">
+      <HintPath>$(MD_NET6_DIRECTORY)\Mods\CustomAlbums.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2CppNewtonsoft.Json">
+      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Il2CppNewtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
 

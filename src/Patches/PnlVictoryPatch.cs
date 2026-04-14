@@ -1,0 +1,25 @@
+using System;
+using MelonLoader;
+using HarmonyLib;
+
+namespace Euterpe.Patches
+{
+    [HarmonyPatch(typeof(Il2Cpp.PnlVictory), "SetScore")]
+    public class PnlVictoryPatch
+    {
+        public static void Postfix()
+        {
+            // 通过 GlobalDataBase 获取当前游玩的谱面 UID
+            string musicUid = Il2CppAssets.Scripts.Database.GlobalDataBase.dbBattleStage.musicUid;
+            
+            if (musicUid.StartsWith("999"))
+            {
+                MelonLogger.Msg($"[Euterpe] Player passed custom chart: UID={musicUid}");
+            }
+            else
+            {
+                MelonLogger.Msg($"[Euterpe] Player passed official chart: UID={musicUid}");
+            }
+        }
+    }
+}

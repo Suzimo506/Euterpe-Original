@@ -1,9 +1,9 @@
 using System;
 using System.Reflection;
 using MelonLoader;
-using Main = ModManager.Main;
+using ModManager = Euterpe.ModManager;
 
-[assembly: MelonInfo(typeof(Main), "ModManager", "1.0.0", "Suzimo")]
+[assembly: MelonInfo(typeof(ModManager), "Euterpe", "1.0.0", "Suzimo")]
 [assembly: MelonGame("PeroPeroGames", "MuseDash")]
 
 // --- 进阶特性设置 ---
@@ -11,11 +11,11 @@ using Main = ModManager.Main;
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 // ------------------
 
-[assembly: AssemblyTitle("ModManager")]
+[assembly: AssemblyTitle("Euterpe")]
 [assembly: AssemblyDescription("Beautiful Harmony for Muse Dash")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Muse Dash Modding Community")]
-[assembly: AssemblyProduct("ModManager")]
+[assembly: AssemblyProduct("Euterpe")]
 [assembly: AssemblyCopyright("Copyright © 2024")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
