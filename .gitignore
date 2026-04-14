@@ -22,6 +22,7 @@ bld/
 *.userosscache
 *.sln.docstates
 *.userprefs
+*.vstemplate
 
 # JetBrains Rider
 .idea/
