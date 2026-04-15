@@ -9,7 +9,7 @@ using Il2Cpp;
 using Il2CppAccount;
 using Il2CppAssets.Scripts.Common;
 using Il2CppNewtonsoft.Json.Linq;
-using CustomAlbums.Managers;
+using Euterpe.CustomAlbums.Managers;
 
 namespace Euterpe
 {

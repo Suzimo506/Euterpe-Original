@@ -2,59 +2,61 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <DefaultItemExcludes>Euterpe\**;$(DefaultItemExcludes)</DefaultItemExcludes>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <!-- 设置 Muse Dash 游戏路径 -->
-    <MD_NET6_DIRECTORY>E:\SteamLibrary\steamapps\common\Muse Dash</MD_NET6_DIRECTORY>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>AnyCPU;x64</Platforms>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <Target Name="CopyDLLs" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetDir)$(ProjectName).dll" DestinationFolder="$(MD_NET6_DIRECTORY)\Mods" />
-    <Message Text="Copied DLL -&gt; $(MD_NET6_DIRECTORY)\Mods\$(ProjectName).dll" Importance="High" />
-  </Target>
-
+  <!-- ========== NuGet 依赖 (来自 CustomAlbums) ========== -->
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\net6\0Harmony.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppInterop.Runtime">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2Cppmscorlib">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppSystem">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Il2CppSystem.dll</HintPath>
-    </Reference>
-    <Reference Include="MelonLoader">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\net6\MelonLoader.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\UnityEngine.UI.dll</HintPath>
-    </Reference>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.40">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NAudio.Vorbis" Version="1.5.0">
+      <ExcludeAssets>contentFiles</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="NLayer" Version="1.16.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+  </ItemGroup>
+
+  <!--
+    所有 MelonLoader 核心引用 + Il2Cpp 游戏程序集引用
+    统一由 Directory.Build.props 提供（与 CustomAlbums 项目共享同一份引用配置）。
+  -->
+
+  <!-- Euterpe 独有的额外引用（CA 不需要但 Euterpe 需要） -->
+  <ItemGroup>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UnityWebRequestModule">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\UnityEngine.UnityWebRequestModule.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppSirenix.Serialization">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Il2CppSirenix.Serialization.dll</HintPath>
-    </Reference>
-    <Reference Include="CustomAlbums">
-      <HintPath>$(MD_NET6_DIRECTORY)\Mods\CustomAlbums.dll</HintPath>
-    </Reference>
-    <Reference Include="Il2CppNewtonsoft.Json">
-      <HintPath>$(MD_NET6_DIRECTORY)\MelonLoader\Il2CppAssemblies\Il2CppNewtonsoft.Json.dll</HintPath>
+      <HintPath>$(MelonAssemblies)UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <!-- ========== ILRepack: 合并 NuGet 库为单一 DLL ========== -->
+  <Target Name="Repack" AfterTargets="Build">
+    <ItemGroup>
+      <InputAssemblies Include="$(OutputPath)$(AssemblyName).dll" />
+      <InputAssemblies Include="$(OutputPath)NAudio.Core.dll" />
+      <InputAssemblies Include="$(OutputPath)NAudio.Vorbis.dll" />
+      <InputAssemblies Include="$(OutputPath)NLayer.dll" />
+      <InputAssemblies Include="$(OutputPath)NVorbis.dll" />
+      <InputAssemblies Include="$(OutputPath)SixLabors.ImageSharp.dll" />
+      <IlRepackLibs Include="$(OutputPath)" />
+      <IlRepackLibs Include="$(MelonNET6)" />
+    </ItemGroup>
+    <ILRepack LibraryPath="@(IlRepackLibs)" OutputFile="$(OutputPath)$(AssemblyName).dll" InputAssemblies="@(InputAssemblies)" Parallel="true" />
+  </Target>
+
+  <!-- ========== 编译后自动复制到游戏 Mods 目录 ========== -->
+  <Target Name="CopyMod" AfterTargets="Repack">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(GameFolder)\Mods" />
+    <Message Text="Copied assembly to '$(GameFolder)\Mods\$(ProjectName).dll'" Importance="High" />
+  </Target>
 
 </Project>

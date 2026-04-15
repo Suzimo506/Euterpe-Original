@@ -3,7 +3,7 @@ using MelonLoader;
 using HarmonyLib;
 using Il2CppAccount;
 using Il2CppNewtonsoft.Json.Linq;
-using CustomAlbums.Managers;
+using Euterpe.CustomAlbums.Managers;
 
 namespace Euterpe.Patches
 {

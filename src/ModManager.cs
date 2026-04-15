@@ -8,6 +8,10 @@ using Il2CppInterop.Runtime; //提供 C# 托管域与 C++ 本机实例间的安�
 using HarmonyLib; //负责运行时方法拦截与字节码劫持
 using UnityEngine.Networking; //提供异步 HTTP 请求支持
 using System.Collections; //提供协程 IEnumerator 支持
+using Euterpe.CustomAlbums;
+using Euterpe.CustomAlbums.Managers;
+using Euterpe.CustomAlbums.Patches;
+using static Euterpe.CustomAlbums.Patches.AnimatedCoverPatch;
 
 namespace Euterpe
 {
@@ -39,6 +43,16 @@ namespace Euterpe
             // 需依照 MelonLoader 标准进行 IO 的落盘。如果宿主本地尚无 UserData 定义环境，将隐式生成并载入默认属性。
             _configCategory = MelonPreferences.CreateCategory("Euterpe");
             EnableUpdatePopup = _configCategory.CreateEntry<bool>("EnableAutoUpdateCheck", true);
+
+            // ===== CustomAlbums 初始化链 =====
+            if (!Directory.Exists(AlbumManager.SearchPath)) Directory.CreateDirectory(AlbumManager.SearchPath);
+            ModSettings.Register();
+            AssetPatch.AttachHook();
+            SavePatch.AttachHook();
+            AlbumManager.LoadAlbums();
+            SaveManager.LoadSaveFile();
+            LoggerInstance.Msg("Initialized CustomAlbums!");
+            // ===== CustomAlbums 初始化完成 =====
 
             // 确认回调：唤起外置更新程序并中止当前游戏进程。
             _onConfirmAction = new System.Action(() =>
@@ -78,6 +92,9 @@ namespace Euterpe
 
         public override void OnUpdate()
         {
+            // CustomAlbums: 驱动动态封面帧动画
+            MusicStageCellPatch.AnimateCoversUpdate();
+
             // 焦点重定向补丁
             if (IsPopupLockActive && CommonMessageBox.s_Instance != null)
             {
@@ -100,6 +117,13 @@ namespace Euterpe
                     }
                 }
             }
+        }
+
+        public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+        {
+            base.OnSceneWasLoaded(buildIndex, sceneName);
+            // CustomAlbums: 追踪当前场景（用于封面动画控制）
+            MusicStageCellPatch.CurrentScene = sceneName;
         }
 
         // 提取模块信息并推送比对。
