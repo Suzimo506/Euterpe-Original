@@ -138,9 +138,12 @@ namespace Euterpe.CustomAlbums.Patches
 
                     searchTag.tag = new Il2CppStringArray(tags.ToArray());
 
-                    // Add it to the game
-                    config.m_Dictionary.Add(searchTag.uid, searchTag);
-                    config.list.Add(searchTag);
+                    // Add it to the game (skip if already registered, for hot reload safety)
+                    if (!config.m_Dictionary.ContainsKey(searchTag.uid))
+                    {
+                        config.m_Dictionary.Add(searchTag.uid, searchTag);
+                        config.list.Add(searchTag);
+                    }
                 }
 
                 // Create and add the new asset with the custom charts' data 

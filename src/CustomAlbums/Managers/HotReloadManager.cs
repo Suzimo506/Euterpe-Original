@@ -1,29 +1,43 @@
+using System.Collections.Concurrent;
+using Euterpe.CustomAlbums.Data;
 using Euterpe.CustomAlbums.Patches;
 using Euterpe.CustomAlbums.Utilities;
 using HarmonyLib;
+using Il2Cpp;
 using Il2CppAssets.Scripts.Database;
+using Il2CppAssets.Scripts.Database.DataClass;
+using Il2CppAssets.Scripts.PeroTools.Commons;
+using Il2CppAssets.Scripts.PeroTools.Managers;
 using Il2CppAssets.Scripts.UI.Panels;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+using Il2CppPeroTools2.Resources;
+using static Il2CppAssets.Scripts.Database.DBConfigCustomTags;
 
 namespace Euterpe.CustomAlbums.Managers
 {
-    // TODO: Fix all of this with album.AlbumName
     internal static class HotReloadManager
     {
         private static readonly Logger Logger = new(nameof(HotReloadManager));
-        private static Queue<string> AlbumsAdded { get; } = new();
-        private static Queue<string> AlbumsDeleted { get; } = new();
-        private static List<string> AlbumUidsAdded { get; } = new();
+
+        // 线程安全队列：FileSystemWatcher 在后台线程触发事件
+        private static ConcurrentQueue<string> AlbumsToAdd { get; } = new();
+        private static ConcurrentQueue<string> AlbumsToDelete { get; } = new();
         private static PnlStage PnlStageInstance { get; set; }
 
+        // 热加载的 MusicInfo 缓存：uid -> MusicInfo
+        // 用于 GetMusicInfoFromAll 的 Harmony Postfix 补丁
+        private static readonly Dictionary<string, MusicInfo> HotLoadedMusicInfos = new();
+        private static readonly Dictionary<string, LocalALBUMInfo> HotLoadedLocalAlbumInfos = new();
+
+        /// <summary>
+        ///     检测文件是否已写入完毕（不再被其他进程锁定）。
+        /// </summary>
         private static bool IsFileUnlocked(string path)
         {
             try
             {
-                using var fileStream = File.Open(path, FileMode.Open);
-                if (fileStream.Length <= 0) return false;
-
-                Logger.Msg("The added album is ready to be read!");
-                return true;
+                using var fileStream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None);
+                return fileStream.Length > 0;
             }
             catch (Exception ex) when (ex is FileNotFoundException or IOException)
             {
@@ -31,107 +45,429 @@ namespace Euterpe.CustomAlbums.Managers
             }
         }
 
-        private static void RemoveAllCachedAssets(string albumName)
+        /// <summary>
+        ///     从 Album 数据创建一个 MusicInfo 对象，填充所有字段。
+        /// </summary>
+        private static MusicInfo CreateMusicInfo(Album album)
         {
-            Logger.Msg("Removing " + albumName + "!");
+            var albumInfo = album.Info;
+            var albumName = album.AlbumName;
+            var uid = $"{AlbumManager.Uid}-{album.Index}";
 
-            if (!AlbumManager.LoadedAlbums.TryGetValue($"album_{albumName}", out var album)) return;
-
-            // Remove cached album information, not needed anymore since the album has been deleted
-            AlbumManager.LoadedAlbums.Remove($"album_{albumName}");
-            CoverManager.CachedAnimatedCovers.Remove(album.Index);
-            CoverManager.CachedCovers.Remove(album.Index);
-            AssetPatch.RemoveFromCache($"album_{albumName}_demo");
-            AssetPatch.RemoveFromCache($"album_{albumName}_music");
-            AssetPatch.RemoveFromCache($"album_{albumName}_cover");
-
-            // Get the music info from the UID, remove it from the ShowMusic list, and refresh the UI
-            var musicInfo = GlobalDataBase.s_DbMusicTag.GetMusicInfoFromAll($"{AlbumManager.Uid}-{album.Index}");
-            GlobalDataBase.s_DbMusicTag.RemoveShowMusicUid(musicInfo);
-            PnlStageInstance.m_MusicRootAnimator?.Play(PnlStageInstance.animNameAlbumIn);
-            PnlStageInstance.RefreshMusicFSV();
-
-            // TODO: Remove the album information from the Custom Albums tag menu
-
-            // TODO: Only change the selected album if the selected album was the album that was deleted
-            Logger.Msg("Successfully removed from cache!");
-        }
-
-        private static void RenameAllCachedAssets(string oldAlbumName, string newAlbumName)
-        {
-            Logger.Msg($"Renaming {oldAlbumName} to {newAlbumName}!");
-            var success = AlbumManager.LoadedAlbums.Remove(oldAlbumName, out var album);
-            if (!success) return;
-
-            // rename the assets to the new name
-            AlbumManager.LoadedAlbums.TryAdd(newAlbumName, album);
-            AssetPatch.ModifyCacheKey($"{oldAlbumName}_demo", $"{newAlbumName}_demo");
-            AssetPatch.ModifyCacheKey($"{oldAlbumName}_music", $"{newAlbumName}_music");
-            AssetPatch.ModifyCacheKey($"{oldAlbumName}_cover", $"{newAlbumName}_cover");
-
-            Logger.Msg("Successfully modified cache!");
-        }
-
-        private static void AddNewAlbums(int previousSize)
-        {
-            var index = previousSize;
-            for (var i = previousSize; i < AlbumManager.LoadedAlbums.Count; i++)
+            var musicInfo = new MusicInfo
             {
-                // TODO: Write added album hot reloading logic here
-            }
+                uid = uid,
+                name = albumInfo.Name ?? "",
+                author = albumInfo.Author ?? "",
+                bpm = albumInfo.Bpm ?? "0",
+                music = $"{albumName}_music",
+                demo = $"{albumName}_demo",
+                cover = $"{albumName}_cover",
+                noteJson = $"{albumName}_map",
+                scene = albumInfo.Scene ?? "scene_01",
+                hexieCover = $"{albumName}_cover",
+                unlockLevel = 0,
+                newMusic = false,
+                levelDesigner = albumInfo.LevelDesigner ?? "",
+                levelDesigner1 = albumInfo.LevelDesigner1 ?? albumInfo.LevelDesigner ?? "",
+                levelDesigner2 = albumInfo.LevelDesigner2 ?? albumInfo.LevelDesigner ?? "",
+                levelDesigner3 = albumInfo.LevelDesigner3 ?? albumInfo.LevelDesigner ?? "",
+                levelDesigner4 = albumInfo.LevelDesigner4 ?? albumInfo.LevelDesigner ?? "",
+                levelDesigner5 = albumInfo.LevelDesigner5 ?? albumInfo.LevelDesigner ?? "",
+                difficulty1 = albumInfo.Difficulty1 ?? "0",
+                difficulty2 = albumInfo.Difficulty2 ?? "0",
+                difficulty3 = albumInfo.Difficulty3 ?? "0",
+                difficulty4 = albumInfo.Difficulty4 ?? "0",
+                difficulty5 = albumInfo.Difficulty5 ?? "0"
+            };
 
-            PnlStageInstance.m_MusicRootAnimator?.Play(PnlStageInstance.animNameAlbumIn);
-            PnlStageInstance.RefreshMusicFSV();
+            musicInfo.callBackDifficulty1 = ParseDifficulty(albumInfo.Difficulty1);
+            musicInfo.callBackDifficulty2 = ParseDifficulty(albumInfo.Difficulty2);
+            musicInfo.callBackDifficulty3 = ParseDifficulty(albumInfo.Difficulty3);
+            musicInfo.callBackDifficulty4 = ParseDifficulty(albumInfo.Difficulty4);
+            musicInfo.callBackDifficulty5 = ParseDifficulty(albumInfo.Difficulty5);
+
+            // new MusicInfo() alone is not enough for runtime UI use.
+            // The normal game load path also initializes internal/localized state.
+            musicInfo.Init(album.Index);
+            musicInfo.InitExInfo();
+            musicInfo.m_MusicExInfo = CreateMusicExInfo(album);
+
+            return musicInfo;
+        }
+
+        private static LocalALBUMInfo CreateLocalAlbumInfo(Album album)
+        {
+            var albumInfo = album.Info;
+            return new LocalALBUMInfo
+            {
+                name = albumInfo.Name ?? string.Empty,
+                author = albumInfo.Author ?? string.Empty
+            };
+        }
+
+        private static int ParseDifficulty(string difficulty)
+        {
+            return int.TryParse(difficulty, out var value) ? value : 0;
+        }
+
+        private static MusicExInfo CreateMusicExInfo(Album album)
+        {
+            var albumInfo = album.Info;
+            var changedDiff = new Il2CppStructArray<int>(5);
+            changedDiff[0] = ParseDifficulty(albumInfo.Difficulty1);
+            changedDiff[1] = ParseDifficulty(albumInfo.Difficulty2);
+            changedDiff[2] = ParseDifficulty(albumInfo.Difficulty3);
+            changedDiff[3] = ParseDifficulty(albumInfo.Difficulty4);
+            changedDiff[4] = ParseDifficulty(albumInfo.Difficulty5);
+
+            var musicExInfo = Interop.CreateTypeValue<MusicExInfo>();
+            musicExInfo.m_AlbumIndex = AlbumManager.Uid + 1;
+            musicExInfo.m_AlbumUidIndex = AlbumManager.Uid;
+            musicExInfo.m_MusicIndex = album.Index;
+            musicExInfo.m_AlbumUidName = AlbumManager.MusicPackage;
+            musicExInfo.m_AlbumJsonName = AlbumManager.JsonName;
+            musicExInfo.m_ChangedDiff = changedDiff;
+            return musicExInfo;
         }
 
         /// <summary>
-        ///     Runs the logic for hot reloading on Unity's FixedUpdate
+        ///     热添加：将新的 .mdm 文件注入游戏运行时数据库。
+        /// </summary>
+        private static void ProcessAdditions()
+        {
+            var addedAny = false;
+
+            while (AlbumsToAdd.TryDequeue(out var path))
+            {
+                try
+                {
+                    // 1. 加载谱面到 AlbumManager
+                    var album = AlbumManager.LoadOne(path);
+                    if (album == null)
+                    {
+                        Logger.Warning($"HotReload: Failed to load album from {path}");
+                        continue;
+                    }
+
+                    var albumName = album.AlbumName;
+                    var uid = $"{AlbumManager.Uid}-{album.Index}";
+                    var albumInfo = album.Info;
+                    Logger.Msg($"HotReload: Adding {albumName} (UID: {uid})", false);
+
+                    // 2. 创建 MusicInfo 并注册到热加载缓存
+                    var musicInfo = CreateMusicInfo(album);
+                    var localAlbumInfo = CreateLocalAlbumInfo(album);
+                    HotLoadedMusicInfos[uid] = musicInfo;
+                    HotLoadedLocalAlbumInfos[uid] = localAlbumInfo;
+                    Logger.Msg($"HotReload: Created MusicInfo for {uid}", false);
+
+                    // 3. 注入搜索标签到 ConfigManager
+                    try
+                    {
+                        var config = Singleton<ConfigManager>.instance.GetConfigObject<DBConfigMusicSearchTag>();
+                        var searchTag = new MusicSearchTagInfo
+                        {
+                            uid = uid,
+                            listIndex = config.count
+                        };
+
+                        var tags = new List<string> { "custom albums" };
+                        if (albumInfo.SearchTags != null) tags.AddRange(albumInfo.SearchTags);
+                        if (!string.IsNullOrEmpty(albumInfo.NameRomanized)) tags.Add(albumInfo.NameRomanized);
+                        for (var i = 0; i < tags.Count; i++) tags[i] = tags[i].ToLower();
+                        searchTag.tag = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray(tags.ToArray());
+
+                        if (!config.m_Dictionary.ContainsKey(uid))
+                        {
+                            config.m_Dictionary.Add(uid, searchTag);
+                            config.list.Add(searchTag);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning($"HotReload: Failed to add search tags: {ex.Message}");
+                    }
+
+                    // 4. 预加载封面资源
+                    try
+                    {
+                        if (album.HasFile("cover.png") || album.HasFile("cover.gif"))
+                        {
+                            ResourcesManager.instance
+                                .LoadFromName<UnityEngine.Sprite>($"{albumName}_cover")
+                                .hideFlags |= UnityEngine.HideFlags.DontUnloadUnusedAsset;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning($"HotReload: Failed to preload cover: {ex.Message}");
+                    }
+
+                    addedAny = true;
+                    Logger.Msg($"HotReload: Successfully added {albumInfo.Name}", false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"HotReload: Error adding album: {ex.Message}");
+                    Logger.Warning(ex.StackTrace);
+                }
+            }
+
+            if (addedAny)
+            {
+                // 重建标签（更新 UID 列表）+ 刷新 UI
+                RebuildCustomAlbumsTag();
+                RefreshUI();
+            }
+        }
+
+        /// <summary>
+        ///     热删除：从游戏运行时数据库中移除指定谱面。
+        /// </summary>
+        private static void ProcessDeletions()
+        {
+            var deletedAny = false;
+
+            while (AlbumsToDelete.TryDequeue(out var albumFileName))
+            {
+                try
+                {
+                    var albumKey = $"album_{albumFileName}";
+                    Logger.Msg($"HotReload: Removing {albumKey}", false);
+
+                    if (!AlbumManager.LoadedAlbums.TryGetValue(albumKey, out var album))
+                    {
+                        Logger.Warning($"HotReload: Album {albumKey} not found");
+                        continue;
+                    }
+
+                    var uid = $"{AlbumManager.Uid}-{album.Index}";
+
+                    // 从热加载缓存移除
+                    HotLoadedMusicInfos.Remove(uid);
+                    HotLoadedLocalAlbumInfos.Remove(uid);
+
+                    // 从游戏音乐数据库中移除
+                    try
+                    {
+                        var musicInfo = GlobalDataBase.s_DbMusicTag.GetMusicInfoFromAll(uid);
+                        if (musicInfo != null)
+                            GlobalDataBase.s_DbMusicTag.RemoveShowMusicUid(musicInfo);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warning($"HotReload: Failed to remove from DB: {ex.Message}");
+                    }
+
+                    // 清除资源缓存
+                    AlbumManager.LoadedAlbums.Remove(albumKey);
+                    CoverManager.CachedAnimatedCovers.Remove(album.Index);
+                    CoverManager.CachedCovers.Remove(album.Index);
+                    AssetPatch.RemoveFromCache($"{albumKey}_demo");
+                    AssetPatch.RemoveFromCache($"{albumKey}_music");
+                    AssetPatch.RemoveFromCache($"{albumKey}_cover");
+
+                    deletedAny = true;
+                    Logger.Msg($"HotReload: Removed {albumKey}", false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"HotReload: Error removing: {ex.Message}");
+                    Logger.Warning(ex.StackTrace);
+                }
+            }
+
+            if (deletedAny)
+            {
+                RebuildCustomAlbumsTag();
+                RefreshUI();
+            }
+        }
+
+        /// <summary>
+        ///     重建 Custom Albums 标签，更新 UID 列表。
+        /// </summary>
+        private static void RebuildCustomAlbumsTag()
+        {
+            try
+            {
+                var customInfo = new CustomTagInfo
+                {
+                    tag_name = AlbumManager.Languages.ToIl2Cpp(),
+                    tag_picture = "https://cdn.mdmc.moe/static/melon.png",
+                    music_list = AlbumManager.GetAllUid().ToIl2Cpp()
+                };
+
+                var existingTag = GlobalDataBase.dbMusicTag.GetAlbumTagInfo(AlbumManager.Uid);
+                if (existingTag != null)
+                {
+                    existingTag.InitCustomTagInfo(customInfo);
+                    Logger.Msg($"HotReload: Tag updated ({AlbumManager.LoadedAlbums.Count} albums)", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"HotReload: Tag rebuild failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        ///     刷新选歌界面 UI。
+        /// </summary>
+        private static void RefreshUI()
+        {
+            if (PnlStageInstance == null) return;
+
+            try
+            {
+                PnlStageInstance.m_MusicRootAnimator?.Play(PnlStageInstance.animNameAlbumIn);
+                PnlStageInstance.RefreshMusicFSV();
+                Logger.Msg("HotReload: UI refreshed", false);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"HotReload: UI refresh failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        ///     在 Unity FixedUpdate 中消费队列（主线程安全）。
         /// </summary>
         internal static void FixedUpdate()
         {
-            var previousSize = AlbumManager.LoadedAlbums.Count;
-            while (AlbumsAdded.Count > 0) AlbumManager.LoadOne(AlbumsAdded.Dequeue());
-            while (AlbumsDeleted.Count > 0) RemoveAllCachedAssets(AlbumsDeleted.Dequeue());
+            if (AlbumsToAdd.IsEmpty && AlbumsToDelete.IsEmpty) return;
+
+            if (PnlStageInstance == null) return;
+
+            Logger.Msg($"HotReload: Processing queue (add={AlbumsToAdd.Count}, del={AlbumsToDelete.Count})", false);
+            ProcessAdditions();
+            ProcessDeletions();
         }
 
         /// <summary>
-        ///     Initializes the AlbumWatcher for adding/deleting/renaming new custom charts.
+        ///     初始化 FileSystemWatcher，监控 Custom_Albums 目录变化。
         /// </summary>
         internal static void OnLateInitializeMelon()
         {
-            AlbumManager.AlbumWatcher.Path = AlbumManager.SearchPath;
-            AlbumManager.AlbumWatcher.Filter = AlbumManager.SearchPattern;
+            try
+            {
+                var watchPath = Path.GetFullPath(AlbumManager.SearchPath);
+                Logger.Msg($"HotReload: Watching directory: {watchPath}", false);
 
-            AlbumManager.AlbumWatcher.Created += (_, e) =>
-            {
-                Logger.Msg("Added file " + e.Name);
-                while (!IsFileUnlocked(e.FullPath))
-                    // Thread sleep added to not poll the drive a ton
-                    Thread.Sleep(200);
-                AlbumsAdded.Enqueue(e.FullPath);
-            };
-            AlbumManager.AlbumWatcher.Deleted += (s, e) =>
-            {
-                Logger.Msg("Deleted file " + e.Name);
-                AlbumsDeleted.Enqueue(Path.GetFileNameWithoutExtension(e.Name));
-            };
-            AlbumManager.AlbumWatcher.Renamed += (s, e) =>
-            {
-                Logger.Msg("Renamed file " + e.OldName + " -> " + e.Name);
-                RenameAllCachedAssets($"album_{Path.GetFileNameWithoutExtension(e.OldName)}",
-                    $"album_{Path.GetFileNameWithoutExtension(e.Name)}");
-            };
+                if (!Directory.Exists(watchPath))
+                {
+                    Logger.Warning($"HotReload: Directory does not exist: {watchPath}");
+                    return;
+                }
 
-            // Start the AlbumWatcher
-            AlbumManager.AlbumWatcher.EnableRaisingEvents = true;
+                AlbumManager.AlbumWatcher.Path = watchPath;
+                AlbumManager.AlbumWatcher.Filter = AlbumManager.SearchPattern;
+
+                AlbumManager.AlbumWatcher.Created += (_, e) =>
+                {
+                    Logger.Msg($"HotReload: Detected new file: {e.Name}", false);
+                    Task.Run(() =>
+                    {
+                        var attempts = 0;
+                        while (!IsFileUnlocked(e.FullPath) && attempts < 50)
+                        {
+                            Thread.Sleep(200);
+                            attempts++;
+                        }
+
+                        if (attempts < 50)
+                        {
+                            AlbumsToAdd.Enqueue(e.FullPath);
+                            Logger.Msg($"HotReload: Queued for addition: {e.Name}", false);
+                        }
+                        else
+                        {
+                            Logger.Warning($"HotReload: Timed out waiting for file: {e.Name}");
+                        }
+                    });
+                };
+
+                AlbumManager.AlbumWatcher.Deleted += (_, e) =>
+                {
+                    Logger.Msg($"HotReload: Detected deletion: {e.Name}", false);
+                    AlbumsToDelete.Enqueue(Path.GetFileNameWithoutExtension(e.Name));
+                };
+
+                AlbumManager.AlbumWatcher.Renamed += (_, e) =>
+                {
+                    Logger.Msg($"HotReload: Detected rename: {e.OldName} -> {e.Name}", false);
+                    var oldKey = $"album_{Path.GetFileNameWithoutExtension(e.OldName)}";
+                    var newKey = $"album_{Path.GetFileNameWithoutExtension(e.Name)}";
+
+                    if (AlbumManager.LoadedAlbums.Remove(oldKey, out var album))
+                    {
+                        AlbumManager.LoadedAlbums.TryAdd(newKey, album);
+                        AssetPatch.ModifyCacheKey($"{oldKey}_demo", $"{newKey}_demo");
+                        AssetPatch.ModifyCacheKey($"{oldKey}_music", $"{newKey}_music");
+                        AssetPatch.ModifyCacheKey($"{oldKey}_cover", $"{newKey}_cover");
+                        Logger.Msg($"HotReload: Renamed {oldKey} -> {newKey}", false);
+                    }
+                };
+
+                AlbumManager.AlbumWatcher.EnableRaisingEvents = true;
+                Logger.Msg("HotReload: FileSystemWatcher initialized!", false);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning($"HotReload: Init failed: {ex.Message}");
+                Logger.Warning(ex.StackTrace);
+            }
         }
 
-        [HarmonyPatch(typeof(PnlStage), nameof(PnlStage.PreWarm))]
+        // ============================================================
+        // Harmony Patches
+        // ============================================================
+
+        /// <summary>
+        ///     拦截 GetMusicInfoFromAll：当游戏查找热加载歌曲的 MusicInfo 时，
+        ///     返回我们手动创建的对象。这是热重载的核心——让游戏"认识"新歌。
+        /// </summary>
+        // TODO: HotReload temporarily disabled
+        // [HarmonyPatch(typeof(DBMusicTag), nameof(DBMusicTag.GetMusicInfoFromAll))]
+        internal static class GetMusicInfoFromAllPatch
+        {
+            private static void Postfix(string musicUid, ref MusicInfo __result)
+            {
+                // 仅在游戏没有找到 MusicInfo 时介入
+                if (__result != null) return;
+
+                if (HotLoadedMusicInfos.TryGetValue(musicUid, out var hotMusicInfo))
+                {
+                    __result = hotMusicInfo;
+                }
+            }
+        }
+
+        // TODO: HotReload temporarily disabled
+        // [HarmonyPatch(typeof(MusicInfo), nameof(MusicInfo.GetLocal))]
+        internal static class GetLocalPatch
+        {
+            private static void Postfix(MusicInfo __instance, int language, ref LocalALBUMInfo __result)
+            {
+                if (__result != null || __instance == null || string.IsNullOrEmpty(__instance.uid)) return;
+
+                if (HotLoadedLocalAlbumInfos.TryGetValue(__instance.uid, out var localAlbumInfo))
+                {
+                    __result = localAlbumInfo;
+                }
+            }
+        }
+
+        /// <summary>
+        ///     获取 PnlStage 实例引用。
+        /// </summary>
+        // TODO: HotReload temporarily disabled
+        // [HarmonyPatch(typeof(PnlStage), nameof(PnlStage.PreWarm))]
         internal static class StagePreWarmPatch
         {
             private static void Postfix(PnlStage __instance)
             {
-                Logger.Msg($"PnlStage instance retrieved. Null = {__instance == null}");
                 PnlStageInstance = __instance;
             }
         }

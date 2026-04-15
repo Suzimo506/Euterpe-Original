@@ -1,0 +1,14 @@
+[2026-04-15 15:37:36.447] [00004D08] === Logging started ===
+[2026-04-15 15:37:36.453] [00004D08] Executing: "C:\Program Files\dotnet\dotnet.exe" build src/Euterpe.csproj --no-restore, PID: 19720, PPID: 28616
+[2026-04-15 15:37:36.454] [00004D08] IsElevated: False
+[2026-04-15 15:37:36.454] [00004D08] Is64BitProcess: True
+[2026-04-15 15:37:36.454] [00004D08] RebootPending: False
+[2026-04-15 15:37:36.454] [00004D08] ProcessorArchitecture: amd64
+[2026-04-15 15:37:36.454] [00004D08] HostArchitecture: x64
+[2026-04-15 15:37:36.454] [00004D08] SdkDirectory: 10.0.104
+[2026-04-15 15:37:36.454] [00004D08] VerifySignatures: False
+[2026-04-15 15:37:36.454] [00004D08] SDK feature band: 10.0.100
+[2026-04-15 15:38:03.032] [00004D08] Shutting down
+[2026-04-15 15:38:03.032] [00004D08] Shutdown completed.
+[2026-04-15 15:38:03.032] [00004D08] Restart required: False
+[2026-04-15 15:38:03.033] [00004D08] === Logging ended ===

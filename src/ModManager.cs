@@ -85,9 +85,30 @@ namespace Euterpe
 
         public override void OnLateInitializeMelon()
         {
-            // 在所有 Mod (包括排在后面的 Headquarters) 都初始化并打完补丁后，
-            // 剥夺它的权限，并贴上我们的补丁。
+            // 在所有 Mod 都初始化并打完补丁后
             Headquarters.Init();
+
+            // TODO: HotReload temporarily disabled until UI interaction issues are fully resolved.
+            /*
+            // 启动热重载文件监控
+            try
+            {
+                LoggerInstance.Msg("Starting HotReload initialization...");
+                HotReloadManager.OnLateInitializeMelon();
+            }
+            catch (Exception ex)
+            {
+                LoggerInstance.Error($"HotReload init failed: {ex.Message}");
+                LoggerInstance.Error(ex.StackTrace);
+            }
+            */
+        }
+
+        public override void OnFixedUpdate()
+        {
+            // CustomAlbums: 处理热重载队列（仅在选歌界面触发）
+            // TODO: HotReload temporarily disabled
+            // HotReloadManager.FixedUpdate();
         }
 
         public override void OnUpdate()
