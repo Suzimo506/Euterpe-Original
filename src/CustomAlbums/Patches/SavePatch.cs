@@ -214,9 +214,9 @@ namespace Euterpe.CustomAlbums.Patches
                 }
 
                 // Custom and HQ not present
-                noNetComp.text = "Headquarters mod is not loaded! ~(*¡ä§¥£à)";
-                __instance.noNet.SetActive(true);
-                return false;
+                
+                __instance.noNet.SetActive(false);
+                return true;
             }
         }
 

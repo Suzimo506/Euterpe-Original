@@ -90,6 +90,23 @@ namespace Euterpe
             else
             {
                 MelonLogger.Msg("[Euterpe] Headquarters mod not found. Applying Euterpe scoreboard patches directly.");
+                
+                try
+                {
+                    var harmony = ModManager.Instance.HarmonyInstance;
+
+                    // 主动调用注入排行榜相关接口补丁
+                    var getRanksMethod = AccessTools.Method(typeof(GameAccountSystem), "GetRanks");
+                    var getRanksPrefix = new HarmonyMethod(AccessTools.Method(typeof(Euterpe.Patches.GetRanksPatch), "Prefix"));
+                    if (getRanksMethod != null && getRanksPrefix.method != null)
+                        harmony.Patch(getRanksMethod, prefix: getRanksPrefix);
+
+                    MelonLogger.Msg("[Euterpe] Euterpe scoreboard injected successfully!");
+                }
+                catch (System.Exception ex)
+                {
+                    MelonLogger.Error($"[Euterpe] Failed to inject scoreboard directly: {ex.Message}");
+                }
             }
         }
     }
