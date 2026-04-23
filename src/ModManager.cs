@@ -11,6 +11,7 @@ using System.Collections;
 using Euterpe.CustomAlbums;
 using Euterpe.CustomAlbums.Managers;
 using Euterpe.CustomAlbums.Patches;
+using Euterpe.Cinema;
 using static Euterpe.CustomAlbums.Patches.AnimatedCoverPatch;
 
 namespace Euterpe
@@ -53,6 +54,9 @@ namespace Euterpe
             SaveManager.LoadSaveFile();
             LoggerInstance.Msg("Initialized CustomAlbums!");
             // ===== CustomAlbums Initialization Complete =====
+
+            // Initialize Cinema
+            CinemaManager.Init();
 
             // Confirm Callback: Invokes external updater and aborts current game process.
             _onConfirmAction = new System.Action(() =>
@@ -109,6 +113,18 @@ namespace Euterpe
             // CustomAlbums: Process HotReload queue (Triggered only in song selection screen)
             // TODO: HotReload temporarily disabled
             // HotReloadManager.FixedUpdate();
+        }
+
+        public override void OnLateUpdate()
+        {
+            // Sync background video player with game time
+            DriftCorrector.LateUpdate();
+        }
+
+        public override void OnDeinitializeMelon()
+        {
+            base.OnDeinitializeMelon();
+            CinemaManager.Cleanup();
         }
 
         public override void OnUpdate()

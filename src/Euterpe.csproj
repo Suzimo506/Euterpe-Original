@@ -36,6 +36,10 @@
       <HintPath>$(MelonAssemblies)UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.VideoModule">
+      <HintPath>$(MelonAssemblies)UnityEngine.VideoModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <!-- ========== ILRepack: 合并 NuGet 库为单一 DLL ========== -->
