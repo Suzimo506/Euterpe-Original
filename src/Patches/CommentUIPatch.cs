@@ -143,6 +143,16 @@ namespace Euterpe.Patches
                             // Clear input field after submission
                             inputField.text = "";
                             
+                            // Show native success toast message
+                            try
+                            {
+                                Il2CppAssets.Scripts.UI.Controls.ShowText.ShowInfo("评论上传成功！");
+                            }
+                            catch (Exception ex)
+                            {
+                                MelonLogger.Warning($"[Euterpe] Failed to show success toast: {ex.Message}");
+                            }
+
                             // TODO: Add network request logic here
                         }
                     }));
@@ -480,6 +490,62 @@ namespace Euterpe.Patches
                         }
                     }
                 }
+
+                // TODO: Character lock icon state does not refresh on custom charts.
+                // The native RefreshLevelConfigUI() fails to update lock icons for custom chart UIDs (999-*).
+                // The lock functionality works correctly (state is persisted), but the golden lock icon does not appear.
+                // Root cause is in the game's native PnlRank code, not in Euterpe or CustomAlbums.
+                /*
+                if (isCustomChart && __instance.pnlRanks != null)
+                {
+                    try
+                    {
+                        var dbLevelConfig = GlobalDataBase.s_DbLevelConfig;
+                        if (dbLevelConfig != null)
+                        {
+                            bool isLocked = (int)dbLevelConfig.curLevelConfigState == 1;
+
+                            foreach (var pnlRank in __instance.pnlRanks)
+                            {
+                                if (pnlRank == null) continue;
+
+                                var refreshMethod = typeof(Il2CppAssets.Scripts.UI.Panels.PnlRank)
+                                    .GetMethod("RefreshLevelConfigUI", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                if (refreshMethod != null)
+                                {
+                                    refreshMethod.Invoke(pnlRank, null);
+                                }
+
+                                if (pnlRank.imgLevelLockBg != null && pnlRank.imgLevelLock != null)
+                                {
+                                    var globalDataProp = typeof(Il2CppAssets.Scripts.UI.Panels.PnlRank)
+                                        .GetProperty("globalData", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                    if (globalDataProp != null)
+                                    {
+                                        var gd = globalDataProp.GetValue(pnlRank) as GlobalScriptableObjectData;
+                                        if (gd != null)
+                                        {
+                                            string spriteName = isLocked ? gd.imgLockOnName : gd.imgLockOffName;
+                                            Color bgColor = isLocked ? gd.colorLevelBgPink : gd.colorLevelBgGrey;
+
+                                            var sprite = Il2CppAssets.Scripts.UI.Panels.PnlRank.GetSprite(spriteName);
+                                            if (sprite != null)
+                                            {
+                                                pnlRank.imgLevelLock.sprite = sprite;
+                                            }
+                                            pnlRank.imgLevelLockBg.color = bgColor;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception lockEx)
+                    {
+                        MelonLogger.Warning($"[Euterpe] Lock icon refresh failed: {lockEx.Message}");
+                    }
+                }
+                */
             }
             catch (Exception e)
             {
