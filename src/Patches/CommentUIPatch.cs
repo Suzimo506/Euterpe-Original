@@ -41,7 +41,11 @@ namespace Euterpe.Patches
                 // Add a dark semi-transparent background
                 var bgImg = inputObj.GetComponent<Image>();
                 if (bgImg == null) bgImg = inputObj.AddComponent<Image>();
-                bgImg.color = new Color(0, 0, 0, 0.7f);
+                
+                // Clear any native sprite so our pure color and alpha work perfectly
+                bgImg.sprite = null;
+                // Red, Green, Blue, Alpha (0.0 to 1.0)
+                bgImg.color = new Color(0f, 0f, 0f, 0.4f); 
 
                 // Adjust input field position and size
                 var rect = inputObj.GetComponent<RectTransform>();
