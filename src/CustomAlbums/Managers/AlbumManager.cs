@@ -93,7 +93,7 @@ namespace Euterpe.CustomAlbums.Managers
             catch (Exception ex)
             {
                 Logger.Warning($"Failed to load album at {fileName}. Reason: {ex.Message}");
-                Logger.Warning(ex.StackTrace);
+                // Logger.Warning(ex.StackTrace);
             }
 
             return null;

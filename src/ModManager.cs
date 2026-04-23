@@ -211,7 +211,7 @@ namespace Euterpe
             }
 
             // Force trigger update popup for testing
-            // requiresUpdate = true; 
+            requiresUpdate = true; 
 
             LoggerInstance.Msg("=========== Euterpe Scanner Completed ===========");
 

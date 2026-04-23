@@ -38,25 +38,56 @@ namespace Euterpe.Patches
                 inputObj.name = "ModCommentInputBox";
                 inputObj.SetActive(true);
 
-                // Add a dark semi-transparent background
+                // Apply dark semi-transparent tint while preserving the native rounded-corner sprite
                 var bgImg = inputObj.GetComponent<Image>();
                 if (bgImg == null) bgImg = inputObj.AddComponent<Image>();
                 
-                // Clear any native sprite so our pure color and alpha work perfectly
-                bgImg.sprite = null;
-                // Red, Green, Blue, Alpha (0.0 to 1.0)
+                // Keep the original sprite for rounded corners, use Sliced mode for proper 9-slice stretching
+                bgImg.type = Image.Type.Sliced;
                 bgImg.color = new Color(0f, 0f, 0f, 0.4f); 
 
                 // Adjust input field position and size
                 var rect = inputObj.GetComponent<RectTransform>();
                 rect.anchorMax = new Vector2(0.5f, 1);
                 rect.anchorMin = new Vector2(0.5f, 1);
-                rect.sizeDelta = new Vector2(750, 100); 
-                rect.anchoredPosition3D = new Vector3(0, -440, 0);
+                rect.sizeDelta = new Vector2(750, 60); 
+                rect.anchoredPosition3D = new Vector3(0, -460, 0);
                 
                 // Ignore native layout to prevent layout displacement
                 var layoutElement = inputObj.GetComponent<LayoutElement>() ?? inputObj.AddComponent<LayoutElement>();
                 layoutElement.ignoreLayout = true;
+
+                // Fix caret/text overflow: the native search input prefab clips via a RectMask2D
+                // on the text area container. We replicate that here.
+                var inputFieldComp = inputObj.GetComponent<InputField>();
+                if (inputFieldComp != null && inputFieldComp.textComponent != null)
+                {
+                    var textAreaTransform = inputFieldComp.textComponent.transform.parent;
+
+                    // Only modify if the text area is a real sub-container (not the root inputObj itself)
+                    if (textAreaTransform != null && textAreaTransform != inputObj.transform)
+                    {
+                        if (textAreaTransform.GetComponent<RectMask2D>() == null)
+                            textAreaTransform.gameObject.AddComponent<RectMask2D>();
+
+                        var taRect = textAreaTransform.GetComponent<RectTransform>();
+                        if (taRect != null)
+                        {
+                            taRect.offsetMin = new Vector2(10, 2);
+                            taRect.offsetMax = new Vector2(-10, -2);
+                        }
+                    }
+                    else
+                    {
+                        // Text is directly under root: just shrink the textComponent itself
+                        var txtRect = inputFieldComp.textComponent.GetComponent<RectTransform>();
+                        if (txtRect != null)
+                        {
+                            txtRect.offsetMin = new Vector2(10, 2);
+                            txtRect.offsetMax = new Vector2(-10, -2);
+                        }
+                    }
+                }
 
                 var inputField = inputObj.GetComponent<InputField>();
                 if (inputField != null) 
@@ -66,7 +97,17 @@ namespace Euterpe.Patches
                     inputField.contentType = InputField.ContentType.Standard;
                     inputField.characterValidation = InputField.CharacterValidation.None;
                     inputField.characterLimit = 0;
-                    inputField.lineType = InputField.LineType.MultiLineSubmit;
+                    inputField.lineType = InputField.LineType.SingleLine;
+
+                    // Scale down font size to match the 60px input box height (caret height = line height)
+                    if (inputField.textComponent != null)
+                    {
+                        inputField.textComponent.fontSize = 24;
+                        // 3 = TextAnchor.MiddleLeft (use reflection for Il2Cpp compatibility)
+                        var alignProp = typeof(Text).GetProperty("alignment");
+                        if (alignProp != null) alignProp.SetValue(inputField.textComponent, 3, null);
+                    }
+                    inputField.caretWidth = 2;
 
                     var placeholderTxt = inputField.placeholder?.GetComponent<Text>();
                     if (placeholderTxt != null) 
@@ -296,7 +337,7 @@ namespace Euterpe.Patches
                                     svRect.anchorMin = new Vector2(0.5f, 1);
                                     svRect.pivot = new Vector2(0.5f, 1);
                                     svRect.anchoredPosition3D = new Vector3(0, -60, 0); // Start below the title
-                                    svRect.sizeDelta = new Vector2(750, 310); // Fit space above input box, adjusted to 310 to not overlap input box
+                                    svRect.sizeDelta = new Vector2(750, 360); // Fit space above input box
                                     
                                     // Add an invisible Image to act as a solid raycast target for the mouse wheel
                                     var svImage = svObj.AddComponent<Image>();
@@ -308,7 +349,7 @@ namespace Euterpe.Patches
                                     var scrollRect = svObj.AddComponent<ScrollRect>();
                                     scrollRect.horizontal = false;
                                     scrollRect.vertical = true;
-                                    scrollRect.scrollSensitivity = 35f; // Increase mouse wheel sensitivity
+                                    scrollRect.scrollSensitivity = 20f; // Increase mouse wheel sensitivity
                                     
                                     var viewportObj = new GameObject("Viewport");
                                     viewportObj.transform.SetParent(svObj.transform, false);
