@@ -6,7 +6,7 @@ using ModManager = Euterpe.ModManager;
 [assembly: MelonInfo(typeof(ModManager), "Euterpe", "1.0.0", "Suzimo")]
 [assembly: MelonGame("PeroPeroGames", "MuseDash")]
 
-// --- 进阶特性设置 ---
+// --- Advanced Feature Flags ---
 [assembly: MelonPlatform(MelonPlatformAttribute.CompatiblePlatforms.WINDOWS_X64)]
 [assembly: MelonPlatformDomain(MelonPlatformDomainAttribute.CompatibleDomains.IL2CPP)]
 // ------------------

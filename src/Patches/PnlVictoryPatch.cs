@@ -9,7 +9,6 @@ namespace Euterpe.Patches
     {
         public static void Postfix()
         {
-            // 通过 GlobalDataBase 获取当前游玩的谱面 UID
             string musicUid = Il2CppAssets.Scripts.Database.GlobalDataBase.dbBattleStage.musicUid;
             
             if (musicUid.StartsWith("999"))

@@ -15,10 +15,9 @@ namespace Euterpe
 {
     public class Headquarters
     {
-        // 预留的排行榜/Headquarters功能点
+        // Entry point for Headquarters module
         public static void Init()
         {
-            // 在此编写你的排行榜初始化逻辑
             MelonLogger.Msg("Headquarters initialized.");
             HijackOriginalHeadquarters();
         }
@@ -29,13 +28,13 @@ namespace Euterpe
             
             if (hqMod != null)
             {
-                MelonLogger.Msg("[Euterpe] 检测到原版 Headquarters Mod，准备剥夺其排行榜控制权...");
+                MelonLogger.Msg("[Euterpe] Native Headquarters Mod detected. Intercepting leaderboard control...");
                 
                 try
                 {
                     string hqHarmonyId = hqMod.HarmonyInstance.Id;
 
-                    // 获取当前所有被 Harmony Patch 过的原版游戏方法
+                    // Retrieve all methods currently patched by Harmony
                     var patchedMethods = HarmonyLib.Harmony.GetAllPatchedMethods();
                     var targetPatchClasses = new List<string> { 
                         "GetRanksPatch", 
@@ -55,7 +54,7 @@ namespace Euterpe
                         var hqPrefixes = patchInfo.Prefixes.Where(p => p.owner == hqHarmonyId);
                         var hqPostfixes = patchInfo.Postfixes.Where(p => p.owner == hqHarmonyId);
 
-                        // 检查前置补丁 (Prefixes)
+                        // Unpatch Prefixes
                         foreach (var prefix in hqPrefixes)
                         {
                             var patchClassName = prefix.PatchMethod.DeclaringType?.Name;
@@ -67,7 +66,7 @@ namespace Euterpe
                             }
                         }
 
-                        // 检查后置补丁 (Postfixes)
+                        // Unpatch Postfixes
                         foreach (var postfix in hqPostfixes)
                         {
                             var patchClassName = postfix.PatchMethod.DeclaringType?.Name;
@@ -95,7 +94,7 @@ namespace Euterpe
                 {
                     var harmony = ModManager.Instance.HarmonyInstance;
 
-                    // 主动调用注入排行榜相关接口补丁
+                    // Inject custom leaderboard patches
                     var getRanksMethod = AccessTools.Method(typeof(GameAccountSystem), "GetRanks");
                     var getRanksPrefix = new HarmonyMethod(AccessTools.Method(typeof(Euterpe.Patches.GetRanksPatch), "Prefix"));
                     if (getRanksMethod != null && getRanksPrefix.method != null)

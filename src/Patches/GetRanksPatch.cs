@@ -10,19 +10,19 @@ namespace Euterpe.Patches
     [HarmonyPatch(typeof(GameAccountSystem), "GetRanks")]
     public class GetRanksPatch
     {
-        // 这里的 callback 类型必须严丝合缝地对齐底层的 Il2CppSystem.Action，否则 Invoke 会引发跨域崩溃。
+        // The callback type must strictly align with the underlying Il2CppSystem.Action to prevent cross-domain invocation crashes.
         public static bool Prefix(string musicUid, int difficulty, Il2CppSystem.Action<JToken, JToken, int> callback, Il2CppSystem.Action<long, string> failCallback)
         {
             if (!musicUid.StartsWith("999"))
             {
-                return true; // 官方库歌曲让游戏原版接管
+                return true; // Let original game logic handle official charts
             }
 
             MelonLogger.Msg($"[Euterpe] Intercepted leaderboard request for custom chart: UID={musicUid}, Diff={difficulty}");
 
             try
             {
-                // 预留通过 CustomAlbums 获取谱面 MD5 的框架
+                // Retrieve the chart MD5 from CustomAlbums framework
                 var album = AlbumManager.GetByUid(musicUid);
                 if (album != null)
                 {
@@ -30,7 +30,7 @@ namespace Euterpe.Patches
                     MelonLogger.Msg($"[Euterpe] Current chart MD5: {md5}, requesting server...");
                 }
 
-                // TODO: 1. 在这里发起向你的服务器的 Get 请求
+                // TODO: 1. Initiate GET request to your remote server here
                 // Web.Get(api_url + "?md5=" + md5, ...)
                 
                 string dummyJsonArray = @"[
@@ -39,12 +39,12 @@ namespace Euterpe.Patches
                         ""user"": { ""nickname"": ""Euterpe"" }
                     }
                 ]";
-                string dummyJsonObject = @"{}"; // 本人的排行对象可以留空
+                string dummyJsonObject = @"{}"; // Current player's ranking object can be left empty
                 
                 var jarray = JArray.Parse(dummyJsonArray);
                 var jobject = JObject.Parse(dummyJsonObject);
                 
-                // 执行回调将伪造数据渲染到游戏 UI 排行榜中
+                // Execute callback to render the data into the game UI leaderboard
                 callback.Invoke(jarray, jobject, 0); 
             }
             catch (Exception ex)
@@ -53,7 +53,7 @@ namespace Euterpe.Patches
                 failCallback.Invoke(404L, "");
             }
 
-            return false; // 拦截完毕，阻断原始逻辑和其他补丁
+            return false; // Interception complete, block original logic and other patches
         }
     }
 }

@@ -19,18 +19,18 @@ namespace Euterpe.CustomAlbums.Managers
     {
         private static readonly Logger Logger = new(nameof(HotReloadManager));
 
-        // 线程安全队列：FileSystemWatcher 在后台线程触发事件
+        // Thread-safe queues for FileSystemWatcher background events
         private static ConcurrentQueue<string> AlbumsToAdd { get; } = new();
         private static ConcurrentQueue<string> AlbumsToDelete { get; } = new();
         private static PnlStage PnlStageInstance { get; set; }
 
-        // 热加载的 MusicInfo 缓存：uid -> MusicInfo
-        // 用于 GetMusicInfoFromAll 的 Harmony Postfix 补丁
+        // Hot-loaded MusicInfo cache: uid -> MusicInfo
+        // Used by GetMusicInfoFromAll Harmony Postfix
         private static readonly Dictionary<string, MusicInfo> HotLoadedMusicInfos = new();
         private static readonly Dictionary<string, LocalALBUMInfo> HotLoadedLocalAlbumInfos = new();
 
         /// <summary>
-        ///     检测文件是否已写入完毕（不再被其他进程锁定）。
+        ///     Checks if a file is fully written and no longer locked by other processes.
         /// </summary>
         private static bool IsFileUnlocked(string path)
         {
@@ -46,7 +46,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     从 Album 数据创建一个 MusicInfo 对象，填充所有字段。
+        ///     Creates a MusicInfo object from an Album with all fields populated.
         /// </summary>
         private static MusicInfo CreateMusicInfo(Album album)
         {
@@ -132,7 +132,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     热添加：将新的 .mdm 文件注入游戏运行时数据库。
+        ///     Hot-add: Injects a new .mdm file into the game's runtime database.
         /// </summary>
         private static void ProcessAdditions()
         {
@@ -142,7 +142,7 @@ namespace Euterpe.CustomAlbums.Managers
             {
                 try
                 {
-                    // 1. 加载谱面到 AlbumManager
+                    // 1. Load album into AlbumManager
                     var album = AlbumManager.LoadOne(path);
                     if (album == null)
                     {
@@ -155,14 +155,14 @@ namespace Euterpe.CustomAlbums.Managers
                     var albumInfo = album.Info;
                     Logger.Msg($"HotReload: Adding {albumName} (UID: {uid})", false);
 
-                    // 2. 创建 MusicInfo 并注册到热加载缓存
+                    // 2. Create MusicInfo and register to hot-load cache
                     var musicInfo = CreateMusicInfo(album);
                     var localAlbumInfo = CreateLocalAlbumInfo(album);
                     HotLoadedMusicInfos[uid] = musicInfo;
                     HotLoadedLocalAlbumInfos[uid] = localAlbumInfo;
                     Logger.Msg($"HotReload: Created MusicInfo for {uid}", false);
 
-                    // 3. 注入搜索标签到 ConfigManager
+                    // 3. Inject search tags into ConfigManager
                     try
                     {
                         var config = Singleton<ConfigManager>.instance.GetConfigObject<DBConfigMusicSearchTag>();
@@ -189,7 +189,7 @@ namespace Euterpe.CustomAlbums.Managers
                         Logger.Warning($"HotReload: Failed to add search tags: {ex.Message}");
                     }
 
-                    // 4. 预加载封面资源
+                    // 4. Preload cover resources
                     try
                     {
                         if (album.HasFile("cover.png") || album.HasFile("cover.gif"))
@@ -216,14 +216,14 @@ namespace Euterpe.CustomAlbums.Managers
 
             if (addedAny)
             {
-                // 重建标签（更新 UID 列表）+ 刷新 UI
+                // Rebuild tags (update UID list) and refresh UI
                 RebuildCustomAlbumsTag();
                 RefreshUI();
             }
         }
 
         /// <summary>
-        ///     热删除：从游戏运行时数据库中移除指定谱面。
+        ///     Hot-delete: Removes a specified album from the game's runtime database.
         /// </summary>
         private static void ProcessDeletions()
         {
@@ -244,11 +244,11 @@ namespace Euterpe.CustomAlbums.Managers
 
                     var uid = $"{AlbumManager.Uid}-{album.Index}";
 
-                    // 从热加载缓存移除
+                    // Remove from hot-load cache
                     HotLoadedMusicInfos.Remove(uid);
                     HotLoadedLocalAlbumInfos.Remove(uid);
 
-                    // 从游戏音乐数据库中移除
+                    // Remove from game music database
                     try
                     {
                         var musicInfo = GlobalDataBase.s_DbMusicTag.GetMusicInfoFromAll(uid);
@@ -260,7 +260,7 @@ namespace Euterpe.CustomAlbums.Managers
                         Logger.Warning($"HotReload: Failed to remove from DB: {ex.Message}");
                     }
 
-                    // 清除资源缓存
+                    // Clear resource cache
                     AlbumManager.LoadedAlbums.Remove(albumKey);
                     CoverManager.CachedAnimatedCovers.Remove(album.Index);
                     CoverManager.CachedCovers.Remove(album.Index);
@@ -286,7 +286,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     重建 Custom Albums 标签，更新 UID 列表。
+        ///     Rebuild Custom Albums tag to update the UID list.
         /// </summary>
         private static void RebuildCustomAlbumsTag()
         {
@@ -313,7 +313,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     刷新选歌界面 UI。
+        ///     Refresh the song selection UI.
         /// </summary>
         private static void RefreshUI()
         {
@@ -332,7 +332,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     在 Unity FixedUpdate 中消费队列（主线程安全）。
+        ///     Consume the queue in Unity's FixedUpdate (main thread safe).
         /// </summary>
         internal static void FixedUpdate()
         {
@@ -346,7 +346,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     初始化 FileSystemWatcher，监控 Custom_Albums 目录变化。
+        ///     Initialize FileSystemWatcher to monitor Custom_Albums directory changes.
         /// </summary>
         internal static void OnLateInitializeMelon()
         {
@@ -425,8 +425,8 @@ namespace Euterpe.CustomAlbums.Managers
         // ============================================================
 
         /// <summary>
-        ///     拦截 GetMusicInfoFromAll：当游戏查找热加载歌曲的 MusicInfo 时，
-        ///     返回我们手动创建的对象。这是热重载的核心——让游戏"认识"新歌。
+        ///     Intercepts GetMusicInfoFromAll: Returns our manually created MusicInfo
+        ///     when the game looks up a hot-loaded song.
         /// </summary>
         // TODO: HotReload temporarily disabled
         // [HarmonyPatch(typeof(DBMusicTag), nameof(DBMusicTag.GetMusicInfoFromAll))]
@@ -434,7 +434,7 @@ namespace Euterpe.CustomAlbums.Managers
         {
             private static void Postfix(string musicUid, ref MusicInfo __result)
             {
-                // 仅在游戏没有找到 MusicInfo 时介入
+                // Intervene only if the game failed to find MusicInfo
                 if (__result != null) return;
 
                 if (HotLoadedMusicInfos.TryGetValue(musicUid, out var hotMusicInfo))
@@ -460,7 +460,7 @@ namespace Euterpe.CustomAlbums.Managers
         }
 
         /// <summary>
-        ///     获取 PnlStage 实例引用。
+        ///     Capture PnlStage instance reference.
         /// </summary>
         // TODO: HotReload temporarily disabled
         // [HarmonyPatch(typeof(PnlStage), nameof(PnlStage.PreWarm))]

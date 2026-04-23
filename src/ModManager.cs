@@ -3,11 +3,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using Il2CppUI.Controls; 
 using Il2CppAssets.Scripts.UI.Panels; 
-using Il2CppArcadeController.UI.Panel.PnlHome; //原生大厅主控实体以定位游戏场景生命周期
-using Il2CppInterop.Runtime; //提供 C# 托管域与 C++ 本机实例间的安全指针传递与委托封装
-using HarmonyLib; //负责运行时方法拦截与字节码劫持
-using UnityEngine.Networking; //提供异步 HTTP 请求支持
-using System.Collections; //提供协程 IEnumerator 支持
+using Il2CppArcadeController.UI.Panel.PnlHome;
+using Il2CppInterop.Runtime;
+using HarmonyLib;
+using UnityEngine.Networking;
+using System.Collections;
 using Euterpe.CustomAlbums;
 using Euterpe.CustomAlbums.Managers;
 using Euterpe.CustomAlbums.Patches;
@@ -17,7 +17,7 @@ namespace Euterpe
 {
     public class ModManager : MelonMod
     {
-        // ----- 本地配置项持久化声明 -----
+        // ----- Local Preferences Configuration -----
         private static MelonPreferences_Category _configCategory;
         public static MelonPreferences_Entry<bool> EnableUpdatePopup;
 
@@ -26,13 +26,13 @@ namespace Euterpe
         private static Il2CppSystem.Action _il2cppConfirm;
         private static Il2CppSystem.Action _il2cppCancel;
 
-        // 全局 UI 互斥锁。此处激活拦截器，用于在更新提示显示期间内，拒载后续引擎原生其他堆栈发起的弹窗请求。
+        // Global UI mutex lock. Activates interceptors to block native popup requests while the update prompt is active.
         public static bool IsPopupLockActive = false;
 
-        // 确保单次 Session 生命周期内的版本侦测行为只执行且严格完成一次。
+        // Ensures update checks only execute exactly once per session lifecycle.
         internal bool _hasCheckedUpdate = false;
 
-        // 静态单例暴露，供静态拦截器回访
+        // Static singleton instance for interceptor callbacks
         public static ModManager Instance { get; private set; }
 
         public override void OnInitializeMelon()
@@ -40,11 +40,11 @@ namespace Euterpe
             Instance = this;
             LoggerInstance.Msg("Euterpe Auto-Updater Core System Initialized!");
 
-            // 需依照 MelonLoader 标准进行 IO 的落盘。如果宿主本地尚无 UserData 定义环境，将隐式生成并载入默认属性。
+            // Persist configuration via MelonLoader standards.
             _configCategory = MelonPreferences.CreateCategory("Euterpe");
             EnableUpdatePopup = _configCategory.CreateEntry<bool>("EnableAutoUpdateCheck", true);
 
-            // ===== CustomAlbums 初始化链 =====
+            // ===== CustomAlbums Initialization Pipeline =====
             if (!Directory.Exists(AlbumManager.SearchPath)) Directory.CreateDirectory(AlbumManager.SearchPath);
             ModSettings.Register();
             AssetPatch.AttachHook();
@@ -52,12 +52,12 @@ namespace Euterpe
             AlbumManager.LoadAlbums();
             SaveManager.LoadSaveFile();
             LoggerInstance.Msg("Initialized CustomAlbums!");
-            // ===== CustomAlbums 初始化完成 =====
+            // ===== CustomAlbums Initialization Complete =====
 
-            // 确认回调：唤起外置更新程序并中止当前游戏进程。
+            // Confirm Callback: Invokes external updater and aborts current game process.
             _onConfirmAction = new System.Action(() =>
             {
-                IsPopupLockActive = false; // 释放拦截锁
+                IsPopupLockActive = false; // Release intercept lock
                 LoggerInstance.Msg("============ [ Euterpe Interaction ] ============");
                 LoggerInstance.Msg("-> User Action: Action [CONFIRM] dispatched successfully.");
                 LoggerInstance.Msg("-> Result: Launching Euterpe Updater DeepLink protocol & Terminating current Game Process.");
@@ -66,10 +66,10 @@ namespace Euterpe
                 Application.Quit();
             });
 
-            // 取消回调：注销拦截锁并恢复游戏。
+            // Cancel Callback: Dismisses intercept lock and resumes game.
             _onCancelAction = new System.Action(() =>
             {
-                IsPopupLockActive = false; // 释放拦截锁
+                IsPopupLockActive = false; // Release intercept lock
                 LoggerInstance.Msg("============ [ Euterpe Interaction ] ============");
                 LoggerInstance.Msg("-> User Action: Action [CANCEL] or Panel Dismissed by user.");
                 LoggerInstance.Msg("-> Result: Alert Panel Terminated. Resuming main thread logic.");
@@ -79,18 +79,18 @@ namespace Euterpe
             _il2cppConfirm = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(_onConfirmAction);
             _il2cppCancel = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(_onCancelAction);
 
-            // 启动页面探测协程
+            // Start background page detection coroutine
             MelonCoroutines.Start(WaitForHomePage());
         }
 
         public override void OnLateInitializeMelon()
         {
-            // 在所有 Mod 都初始化并打完补丁后
+            // Post-initialization hooks after all mods have loaded
             Headquarters.Init();
 
             // TODO: HotReload temporarily disabled until UI interaction issues are fully resolved.
             /*
-            // 启动热重载文件监控
+            // Start HotReload file system watcher
             try
             {
                 LoggerInstance.Msg("Starting HotReload initialization...");
@@ -106,20 +106,20 @@ namespace Euterpe
 
         public override void OnFixedUpdate()
         {
-            // CustomAlbums: 处理热重载队列（仅在选歌界面触发）
+            // CustomAlbums: Process HotReload queue (Triggered only in song selection screen)
             // TODO: HotReload temporarily disabled
             // HotReloadManager.FixedUpdate();
         }
 
         public override void OnUpdate()
         {
-            // CustomAlbums: 驱动动态封面帧动画
+            // CustomAlbums: Drive animated cover frame updates
             MusicStageCellPatch.AnimateCoversUpdate();
 
-            // 焦点重定向补丁
+            // Focus redirection patch for popups
             if (IsPopupLockActive && CommonMessageBox.s_Instance != null)
             {
-                // 触发首位按钮（确认）
+                // Trigger Confirm button
                 if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
                     if (CommonMessageBox.s_Instance.m_BtnLayoutRects.Length > 0)
@@ -128,7 +128,7 @@ namespace Euterpe
                         if (confirmBtn != null) confirmBtn.onClick.Invoke();
                     }
                 }
-                // 触发次位按钮（取消）
+                // Trigger Cancel button
                 else if (Input.GetKeyDown(KeyCode.Escape))
                 {
                     if (CommonMessageBox.s_Instance.m_BtnLayoutRects.Length > 1)
@@ -143,14 +143,14 @@ namespace Euterpe
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             base.OnSceneWasLoaded(buildIndex, sceneName);
-            // CustomAlbums: 追踪当前场景（用于封面动画控制）
+            // CustomAlbums: Track active scene for animated cover states
             MusicStageCellPatch.CurrentScene = sceneName;
         }
 
-        // 提取模块信息并推送比对。
+        // Trigger version verification sequence
         internal void VerifyVersionsTrigger()
         {
-            // 启动异步协程，彻底解耦网络请求与游戏主渲染线程
+            // Start asynchronous coroutine to decouple network requests from the main render thread
             MelonCoroutines.Start(FetchApiCoroutine());
         }
 
@@ -160,11 +160,11 @@ namespace Euterpe
 
             var installedMods = new System.Collections.Generic.Dictionary<string, string>();
 
-            // 将自更新模块作为强行入列排查对象。
+            // Inject the auto-updater module as a mandatory target
             installedMods[this.Info.Name] = this.Info.Version;
             LoggerInstance.Msg($"[+] {this.Info.Name} (v{this.Info.Version})");
 
-            // 遍历并压入运行池内其他活跃 Mod 信息供全盘更新扫描。
+            // Extract installed versions from registered mods in the runtime pool
             foreach (var mod in MelonMod.RegisteredMelons)
             {
                 if (!installedMods.ContainsKey(mod.Info.Name))
@@ -174,11 +174,11 @@ namespace Euterpe
                 }
             }
 
-            // 远端 API 终点
-            string apiUrl = "https://Euterpe.example.com/api/v1/update"; // TODO: 替换为真实的远端配置 URL
+            // Remote API endpoint
+            string apiUrl = "https://Euterpe.example.com/api/v1/update"; // TODO: Replace with the actual remote configuration URL
             LoggerInstance.Msg($"[+] Dispatching Async Request to: {apiUrl}");
 
-            // 发起异步 HTTP GET 请求
+            // Initiate asynchronous HTTP GET request
             var request = UnityWebRequest.Get(apiUrl);
             yield return request.SendWebRequest();
 
@@ -186,7 +186,7 @@ namespace Euterpe
 
             if (!request.isNetworkError && !request.isHttpError)
             {
-                // TODO: 填写 API 响应解析逻辑
+                // TODO: Implement API payload parsing logic
                 LoggerInstance.Msg("-> Payload retrieved successfully. Parsing API parameters...");
             }
             else
@@ -194,7 +194,7 @@ namespace Euterpe
                 LoggerInstance.Error($"API Request Failed: {request.error}");
             }
 
-            // 测试强制触发更新弹窗
+            // Force trigger update popup for testing
             requiresUpdate = true; 
 
             LoggerInstance.Msg("=========== Euterpe Scanner Completed ===========");
@@ -208,17 +208,17 @@ namespace Euterpe
 
                 CommonMessageBox.ShowConfrimAndCancelWithShut(msgBuilder, _il2cppConfirm, _il2cppCancel);
 
-                // 保障弹窗唯一抢占焦点。
+                // Establish sole UI focus via intercept lock
                 IsPopupLockActive = true; 
             }
         }
 
-        // 通过协程按秒轮询
+        // Wait for Home Page initialization via coroutine polling
         private IEnumerator WaitForHomePage()
         {
             while (!_hasCheckedUpdate)
             {
-                // 如果配置文件控制中关闭了更新，则直接斩断探测循环。
+                // Abort polling if auto-updates are disabled via config
                 if (!EnableUpdatePopup.Value)
                 {
                     _hasCheckedUpdate = true;
@@ -233,26 +233,26 @@ namespace Euterpe
                     yield break;
                 }
                 
-                // 等待进入大厅过程中，每隔 1 秒检测一次
+                // Delay next check by 1 second while waiting for Home Page
                 yield return new WaitForSeconds(1f);
             }
         }
     }
 
-    // ================== Sub-System Interceptor Directives (本机端拦截服务) ==================
+    // ================== Sub-System Interceptor Directives ==================
     
-    // 切片挂载一：拦截带有进程关闭属性的原生请求框。
+    // Intercept native dialogue box with shutdown request
     [HarmonyPatch(typeof(CommonMessageBox), nameof(CommonMessageBox.ShowConfrimAndCancelWithShut))]
     public class InterceptMessageBox_WithShut
     {
         public static bool Prefix()
         {
-            // 视当前挂起标记返回 false 进行原生执行流切断。
+            // Abort native execution flow if the intercept lock is active
             return !ModManager.IsPopupLockActive; 
         }
     }
 
-    // 切片挂载二：拦截常规标准原生确认框。
+    // Intercept standard native dialogue box
     [HarmonyPatch(typeof(CommonMessageBox), nameof(CommonMessageBox.ShowConfrimAndCancel))]
     public class InterceptMessageBox_Normal
     {
