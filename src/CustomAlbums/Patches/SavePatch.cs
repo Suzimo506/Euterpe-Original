@@ -27,8 +27,7 @@ namespace Euterpe.CustomAlbums.Patches
 {
     internal static class SavePatch
     {
-        internal static bool? _hqPresent = null;
-        internal static bool HQPresent => _hqPresent ??= MelonBase.FindMelon("Headquarters", "AshtonMemer") is not null;           
+        internal static bool HQPresent => true;           
 
         private static string OriginalNoNetText;
 
@@ -200,11 +199,7 @@ namespace Euterpe.CustomAlbums.Patches
                     OriginalNoNetText = noNetComp.text;
                     FirstRun = false;
                 }
-                // Check first run case when on a custom and HQ is not present
-                if (uid.StartsWith($"{AlbumManager.Uid}-") && _hqPresent == null && !HQPresent)
-                {
-                    Logger.Warning("Headquarters is not installed! Custom chart leaderboards will not function.");
-                }
+                // HQ is now built-in, no warning needed.
 
                 // Vanilla chart or HQ present
                 if (!uid.StartsWith($"{AlbumManager.Uid}-") || HQPresent)

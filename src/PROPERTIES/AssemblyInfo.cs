@@ -14,9 +14,9 @@ using ModManager = Euterpe.ModManager;
 [assembly: AssemblyTitle("Euterpe")]
 [assembly: AssemblyDescription("Beautiful Harmony for Muse Dash")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Muse Dash Modding Community")]
+[assembly: AssemblyCompany("Euterpe Community")]
 [assembly: AssemblyProduct("Euterpe")]
-[assembly: AssemblyCopyright("Copyright © 2024")]
+[assembly: AssemblyCopyright("Copyright © 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
