@@ -207,28 +207,38 @@ namespace Euterpe.Patches
                             var cup = layAchv.achvGamobjects[i];
                             if (cup != null)
                             {
-                                cup.SetActive(true); // Force active to serve as the background panel
-
-                                var cupImg = cup.GetComponent<Image>();
-                                if (cupImg != null)
+                                if (isCustomChart)
                                 {
-                                    if (isCustomChart)
+                                    cup.SetActive(true); // Force active to serve as the background panel
+
+                                    var cupImg = cup.GetComponent<Image>();
+                                    if (cupImg != null)
                                     {
                                         cupImg.color = baseColor;
                                         cupImg.sprite = baseSprite;
                                     }
-                                    else
+
+                                    if (cup.transform.childCount > 1)
+                                    {
+                                        cup.transform.GetChild(0).gameObject.SetActive(false);
+                                        cup.transform.GetChild(1).gameObject.SetActive(false);
+                                    }
+                                }
+                                else
+                                {
+                                    // For official charts, native OnEnable sets active state. Just restore appearance.
+                                    var cupImg = cup.GetComponent<Image>();
+                                    if (cupImg != null)
                                     {
                                         cupImg.color = _originalCupColors[i];
                                         cupImg.sprite = _originalCupSprites[i];
                                     }
-                                }
 
-                                // Hide/Show native icons and text
-                                if (cup.transform.childCount > 1)
-                                {
-                                    cup.transform.GetChild(0).gameObject.SetActive(!isCustomChart);
-                                    cup.transform.GetChild(1).gameObject.SetActive(!isCustomChart);
+                                    if (cup.transform.childCount > 1)
+                                    {
+                                        cup.transform.GetChild(0).gameObject.SetActive(true);
+                                        cup.transform.GetChild(1).gameObject.SetActive(true);
+                                    }
                                 }
                             }
                         }
