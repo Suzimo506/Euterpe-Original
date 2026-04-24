@@ -113,6 +113,27 @@ namespace Euterpe.Patches
                     if (placeholderTxt != null) 
                     {
                         placeholderTxt.text = "";
+                        placeholderTxt.fontSize = inputField.textComponent != null ? inputField.textComponent.fontSize : 24;
+                        placeholderTxt.color = new Color(1f, 1f, 1f, 0.45f);
+
+                        var placeholderAlignProp = typeof(Text).GetProperty("alignment");
+                        if (placeholderAlignProp != null) placeholderAlignProp.SetValue(placeholderTxt, 3, null);
+
+                        if (inputField.textComponent != null)
+                        {
+                            var sourceRect = inputField.textComponent.GetComponent<RectTransform>();
+                            var placeholderRect = placeholderTxt.GetComponent<RectTransform>();
+                            if (sourceRect != null && placeholderRect != null)
+                            {
+                                placeholderRect.anchorMin = sourceRect.anchorMin;
+                                placeholderRect.anchorMax = sourceRect.anchorMax;
+                                placeholderRect.pivot = sourceRect.pivot;
+                                placeholderRect.anchoredPosition = sourceRect.anchoredPosition;
+                                placeholderRect.sizeDelta = sourceRect.sizeDelta;
+                                placeholderRect.offsetMin = sourceRect.offsetMin;
+                                placeholderRect.offsetMax = sourceRect.offsetMax;
+                            }
+                        }
                     }
 
                     // Intercept input actions to prevent game hotkey conflicts
@@ -122,12 +143,20 @@ namespace Euterpe.Patches
                     var selectEntry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.Select };
                     selectEntry.callback.AddListener((UnityAction<UnityEngine.EventSystems.BaseEventData>)new Action<UnityEngine.EventSystems.BaseEventData>((data) => {
                         Il2CppAssets.Scripts.PeroTools.Managers.InputManager.instance.isStopKeyAction = true;
+                        if (inputField.placeholder != null)
+                        {
+                            inputField.placeholder.gameObject.SetActive(false);
+                        }
                     }));
                     trigger.triggers.Add(selectEntry);
 
                     var deselectEntry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.Deselect };
                     deselectEntry.callback.AddListener((UnityAction<UnityEngine.EventSystems.BaseEventData>)new Action<UnityEngine.EventSystems.BaseEventData>((data) => {
                         Il2CppAssets.Scripts.PeroTools.Managers.InputManager.instance.isStopKeyAction = false;
+                        if (inputField.placeholder != null)
+                        {
+                            inputField.placeholder.gameObject.SetActive(string.IsNullOrEmpty(inputField.text));
+                        }
                     }));
                     trigger.triggers.Add(deselectEntry);
 
@@ -142,6 +171,10 @@ namespace Euterpe.Patches
                             
                             // Clear input field after submission
                             inputField.text = "";
+                            if (inputField.placeholder != null)
+                            {
+                                inputField.placeholder.gameObject.SetActive(true);
+                            }
                             
                             // Show native success toast message
                             try
@@ -183,8 +216,11 @@ namespace Euterpe.Patches
     [HarmonyPatch(typeof(PnlPreparation), "OnEnable")]
     public class CommentUIPatchOnEnable
     {
+        private const string CommentTitleText = "你好，<color=#00A2FF>Euterpe</color>";
+        private const string CommentPlaceholderText = "欢迎留下你的神评论~";
         private static Color[] _originalCupColors = null;
         private static Sprite[] _originalCupSprites = null;
+        private static Sprite _avatarMaskSprite = null;
 
         private static Transform FindChildRecursively(Transform parent, string name)
         {
@@ -195,6 +231,59 @@ namespace Euterpe.Patches
                 if (result != null) return result;
             }
             return null;
+        }
+
+        private static Sprite GetAvatarMaskSprite()
+        {
+            if (_avatarMaskSprite != null) return _avatarMaskSprite;
+
+            const int size = 1024;
+            var texture = new Texture2D(size, size, TextureFormat.ARGB32, false);
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+
+            var pixels = new Color[size * size];
+            var center = (size - 1) * 0.5f;
+            var radius = size * 0.5f - 2f;
+            const float feather = 3f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    var dx = x - center;
+                    var dy = y - center;
+                    var distance = Mathf.Sqrt(dx * dx + dy * dy);
+                    var alpha = Mathf.Clamp01((radius - distance) / feather + 0.5f);
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            _avatarMaskSprite = Sprite.Create(
+                texture,
+                new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f));
+            return _avatarMaskSprite;
+        }
+
+        private static Sprite CreateCenteredSquareSprite(Texture2D texture)
+        {
+            if (texture == null) return null;
+
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.filterMode = FilterMode.Bilinear;
+
+            var side = Mathf.Min(texture.width, texture.height);
+            var x = (texture.width - side) / 2f;
+            var y = (texture.height - side) / 2f;
+
+            return Sprite.Create(
+                texture,
+                new Rect(x, y, side, side),
+                new Vector2(0.5f, 0.5f));
         }
 
         public static void Postfix(PnlPreparation __instance)
@@ -212,6 +301,18 @@ namespace Euterpe.Patches
                     // 1. Control comment input box and scroll view visibility
                     var inputBox = layAchv.transform.Find("ModCommentInputBox");
                     if (inputBox != null) inputBox.gameObject.SetActive(isCustomChart);
+
+                    var inputField = inputBox?.GetComponent<InputField>();
+                    var placeholderTxt = inputField?.placeholder?.GetComponent<Text>();
+                    if (placeholderTxt != null)
+                    {
+                        placeholderTxt.text = isCustomChart ? CommentPlaceholderText : "";
+                        placeholderTxt.fontSize = inputField?.textComponent != null ? inputField.textComponent.fontSize : 24;
+                        placeholderTxt.color = new Color(1f, 1f, 1f, 0.45f);
+
+                        var placeholderAlignProp = typeof(Text).GetProperty("alignment");
+                        if (placeholderAlignProp != null) placeholderAlignProp.SetValue(placeholderTxt, 3, null);
+                    }
 
                     var scrollViewObj = layAchv.transform.Find("ModCommentScrollView");
                     if (scrollViewObj != null) scrollViewObj.gameObject.SetActive(isCustomChart);
@@ -325,7 +426,7 @@ namespace Euterpe.Patches
                                 var t = titleTextObj.GetComponent<Text>();
                                 if (t != null)
                                 {
-                                    t.text = isCustomChart ? "你好，<color=#00A2FF>Euterpe</color>，欢迎留下你的神评论~" : "关卡成就";
+                                    t.text = isCustomChart ? CommentTitleText : "关卡成就";
                                 }
 
                                 // Clean up the old ModCommentGreeting if it exists
@@ -422,8 +523,29 @@ namespace Euterpe.Patches
                                         avatarObj.transform.SetParent(itemObj.transform, false);
                                         var avatarRect = avatarObj.AddComponent<RectTransform>();
                                         avatarRect.sizeDelta = new Vector2(60, 60);
-                                        var img = avatarObj.AddComponent<Image>();
-                                        
+
+                                        var avatarLayout = avatarObj.AddComponent<LayoutElement>();
+                                        avatarLayout.minWidth = 60;
+                                        avatarLayout.minHeight = 60;
+                                        avatarLayout.preferredWidth = 60;
+                                        avatarLayout.preferredHeight = 60;
+
+                                        var avatarMaskImage = avatarObj.AddComponent<Image>();
+                                        avatarMaskImage.sprite = GetAvatarMaskSprite();
+                                        avatarMaskImage.color = Color.white;
+                                        var avatarMask = avatarObj.AddComponent<Mask>();
+                                        avatarMask.showMaskGraphic = false;
+
+                                        var avatarContentObj = new GameObject("AvatarContent");
+                                        avatarContentObj.transform.SetParent(avatarObj.transform, false);
+                                        var avatarContentRect = avatarContentObj.AddComponent<RectTransform>();
+                                        avatarContentRect.anchorMin = Vector2.zero;
+                                        avatarContentRect.anchorMax = Vector2.one;
+                                        avatarContentRect.offsetMin = Vector2.zero;
+                                        avatarContentRect.offsetMax = Vector2.zero;
+
+                                        var img = avatarContentObj.AddComponent<Image>();
+
                                         if (j >= 1 && j <= 4)
                                         {
                                             try
@@ -434,7 +556,8 @@ namespace Euterpe.Patches
                                                     byte[] data = System.IO.File.ReadAllBytes(avatarPath);
                                                     Texture2D tex = new Texture2D(2, 2);
                                                     tex.LoadImage(data);
-                                                    img.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+                                                    img.sprite = CreateCenteredSquareSprite(tex);
+                                                    img.color = Color.white;
                                                 }
                                                 else 
                                                 {
@@ -467,7 +590,7 @@ namespace Euterpe.Patches
                                         } else {
                                         txt.text = $"这是预览{j}：原神nb！原神は最高だ！Genshin Impact is awesome!";
                                         }
-                                        txt.fontSize = 26;
+                                        txt.fontSize = 22;
                                         var resizeProp = typeof(Text).GetProperty("resizeTextForBestFit");
                                         if (resizeProp != null) resizeProp.SetValue(txt, false, null);
                                         var alignProp = typeof(Text).GetProperty("alignment");
