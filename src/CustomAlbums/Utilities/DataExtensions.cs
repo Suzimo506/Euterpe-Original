@@ -63,15 +63,18 @@ namespace Euterpe.CustomAlbums.Utilities
 
         public static ChartSave ToChartSave(this IData data)
         {
+            if (data == null) return null;
             return new ChartSave
             {
-                Evaluate = data.fields["evaluate"].GetResult<int>(),
-                Score = data.fields["score"].GetResult<int>(),
-                Combo = data.fields["combo"].GetResult<int>(),
-                Accuracy = data.fields["accuracy"].GetResult<float>(),
-                AccuracyStr = data.fields["accuracyStr"].GetResult<string>(),
-                Clear = data.fields["clear"].GetResult<float>()
+                Evaluate = data.fields.ContainsKey("evaluate") ? data.fields["evaluate"].GetResult<int>() : -1,
+                Score = data.fields.ContainsKey("score") ? data.fields["score"].GetResult<int>() : 0,
+                Combo = data.fields.ContainsKey("combo") ? data.fields["combo"].GetResult<int>() : 0,
+                Accuracy = data.fields.ContainsKey("accuracy") ? data.fields["accuracy"].GetResult<float>() : 0f,
+                AccuracyStr = data.fields.ContainsKey("accuracyStr") ? data.fields["accuracyStr"].GetResult<string>() : "0.00%",
+                Clear = data.fields.ContainsKey("clear") ? data.fields["clear"].GetResult<float>() : 0f
             };
         }
+
+        public static ChartSave ToChartSaveSafe(this IData data) => data?.ToChartSave() ?? new ChartSave { Evaluate = -1 };
     }
 }

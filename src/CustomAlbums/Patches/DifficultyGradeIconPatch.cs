@@ -48,9 +48,9 @@ namespace Euterpe.CustomAlbums.Patches
             if (!specialSongInstance.IsInvokeHideBms(uid)) return;
             if (!specialSongInstance.m_HideBmsInfos.TryGetValue(uid, out var info)) return;
 
-            // Get the difficulty evaluates
-            var hiddenEval = DataHelper.highest.GetIDataByUid(uid, 4).ToChartSave().Evaluate;
-            var masterEval = DataHelper.highest.GetIDataByUid(uid, 3).ToChartSave().Evaluate;
+            // Get the difficulty evaluates safely
+            var hiddenEval = DataHelper.highest.GetIDataByUid(uid, 4).ToChartSaveSafe().Evaluate;
+            var masterEval = DataHelper.highest.GetIDataByUid(uid, 3).ToChartSaveSafe().Evaluate;
 
             // The game handles case 3 already, don't need to reinvent the wheel here
             switch (info.triggerDiff)
