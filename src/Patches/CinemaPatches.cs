@@ -23,11 +23,21 @@ namespace Euterpe.Patches
     [HarmonyPatch(typeof(StageBattleComponent), "Exit")]
     internal class CinemaExitPatch
     {
-        private static void Postfix()
+        private static void Prefix()
         {
-            CinemaManager.Player = null;
+            if (CinemaManager.Player != null)
+            {
+                UnityEngine.Object.Destroy(CinemaManager.Player.gameObject);
+                CinemaManager.Player = null;
+            }
             CinemaManager.GameStarted = false;
             CinemaManager.Christmas = false;
+            
+            // Restore main camera flags just in case
+            if (Camera.main != null)
+            {
+                Camera.main.clearFlags = CameraClearFlags.Skybox;
+            }
         }
     }
 
