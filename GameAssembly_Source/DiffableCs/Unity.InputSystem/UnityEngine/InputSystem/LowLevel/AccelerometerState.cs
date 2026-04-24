@@ -1,0 +1,23 @@
+namespace UnityEngine.InputSystem.LowLevel;
+
+internal struct AccelerometerState : IInputStateTypeInfo
+{
+	[InputControl]
+	public Vector3 acceleration; //Field offset: 0x0
+
+	public override FourCC format
+	{
+		 get { } //Length: 54
+	}
+
+	public static FourCC kFormat
+	{
+		 get { } //Length: 54
+	}
+
+	public override FourCC get_format() { }
+
+	public static FourCC get_kFormat() { }
+
+}
+

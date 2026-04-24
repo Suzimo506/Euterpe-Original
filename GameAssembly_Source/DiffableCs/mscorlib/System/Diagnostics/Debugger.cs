@@ -1,0 +1,25 @@
+namespace System.Diagnostics;
+
+[ComVisible(/*Cpp2IL Warning: missing at least one required parameter*/)]
+[MonoTODO]
+public sealed class Debugger
+{
+	public static readonly string DefaultCategory; //Field offset: 0x2C927B4
+
+	public static bool IsAttached
+	{
+		 get { } //Length: 70
+	}
+
+	private static Debugger() { }
+
+	public static bool get_IsAttached() { }
+
+	private static bool IsAttached_internal() { }
+
+	public static void Log(int level, string category, string message) { }
+
+	public static void NotifyOfCrossThreadDependency() { }
+
+}
+

@@ -1,0 +1,81 @@
+namespace UnityEngine;
+
+[NativeClass(/*Cpp2IL Warning: missing at least one required parameter*/)]
+[NativeHeader(/*Cpp2IL Warning: missing at least one required parameter*/)]
+[NativeHeader(/*Cpp2IL Warning: missing at least one required parameter*/)]
+[NativeHeader(/*Cpp2IL Warning: missing at least one required parameter*/)]
+[NativeHeader(/*Cpp2IL Warning: missing at least one required parameter*/)]
+[NativeType]
+[RequiredByNativeCode]
+public struct Bounds : IEquatable<Bounds>
+{
+	private Vector3 m_Center; //Field offset: 0x0
+	[NativeName(/*Cpp2IL Warning: missing at least one required parameter*/)]
+	private Vector3 m_Extents; //Field offset: 0xC
+
+	public Vector3 center
+	{
+		 get { } //Length: 18
+		 set { } //Length: 15
+	}
+
+	public Vector3 extents
+	{
+		 get { } //Length: 19
+		 set { } //Length: 16
+	}
+
+	public Vector3 max
+	{
+		 get { } //Length: 200
+	}
+
+	public Vector3 min
+	{
+		 get { } //Length: 200
+	}
+
+	public Vector3 size
+	{
+		 get { } //Length: 162
+		 set { } //Length: 142
+	}
+
+	public Bounds(Vector3 center, Vector3 size) { }
+
+	public void Encapsulate(Vector3 point) { }
+
+	public void Encapsulate(Bounds bounds) { }
+
+	public virtual bool Equals(object other) { }
+
+	public override bool Equals(Bounds other) { }
+
+	public Vector3 get_center() { }
+
+	public Vector3 get_extents() { }
+
+	public Vector3 get_max() { }
+
+	public Vector3 get_min() { }
+
+	public Vector3 get_size() { }
+
+	public virtual int GetHashCode() { }
+
+	public static bool op_Equality(Bounds lhs, Bounds rhs) { }
+
+	public static bool op_Inequality(Bounds lhs, Bounds rhs) { }
+
+	public void set_center(Vector3 value) { }
+
+	public void set_extents(Vector3 value) { }
+
+	public void set_size(Vector3 value) { }
+
+	public void SetMinMax(Vector3 min, Vector3 max) { }
+
+	public virtual string ToString() { }
+
+}
+
