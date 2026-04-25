@@ -25,9 +25,11 @@ namespace Euterpe.Patches
     {
         private static void Prefix()
         {
-            if (CinemaManager.Player != null)
+            DriftCorrector.Stop();
+
+            if (CinemaManager.Player != null && CinemaManager.Player.gameObject != null)
             {
-                UnityEngine.Object.Destroy(CinemaManager.Player.gameObject);
+                CinemaManager.Player.gameObject.SetActive(false);
                 CinemaManager.Player = null;
             }
             CinemaManager.GameStarted = false;
