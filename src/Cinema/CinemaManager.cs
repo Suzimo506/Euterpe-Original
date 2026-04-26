@@ -12,6 +12,7 @@ namespace Euterpe.Cinema
     {
         internal static bool GameStarted;
         internal static VideoPlayer Player;
+        internal static GameObject CinemaObject;
         internal static bool Christmas;
 
         internal static void Init()
@@ -24,18 +25,42 @@ namespace Euterpe.Cinema
                 File.Delete(Application.dataPath + "/cinema.mp4");
         }
 
+        internal static void Clear()
+        {
+            DriftCorrector.Stop();
+            
+            if (Player != null)
+            {
+                try { Player.Stop(); } catch { /* Ignore */ }
+                Player = null;
+            }
+
+            if (CinemaObject != null)
+            {
+                Object.Destroy(CinemaObject);
+                CinemaObject = null;
+            }
+
+            GameStarted = false;
+            Christmas = false;
+        }
+
         internal static void Cleanup()
         {
+            Clear();
             if (File.Exists(Application.dataPath + "/cinema.mp4"))
                 File.Delete(Application.dataPath + "/cinema.mp4");
         }
 
         internal static void InitCamera(float opacity)
         {
+            Clear();
+
             var camera = Camera.allCameras.Single(c => c.name == "Camera_3D");
 
             // Create new cinema camera
             var videoCamera = Object.Instantiate(camera);
+            CinemaObject = videoCamera.gameObject;
             videoCamera.name = "Camera_Cinema";
             videoCamera.depth = -2;
             videoCamera.transform.position = new Vector3(0, 0, -9001);
@@ -47,7 +72,7 @@ namespace Euterpe.Cinema
             Camera.main.clearFlags = CameraClearFlags.Depth;
 
             // Add video player to new camera
-            Player = videoCamera.gameObject.AddComponent<VideoPlayer>();
+            Player = CinemaObject.AddComponent<VideoPlayer>();
             Player.playOnAwake = false;
             Player.targetCameraAlpha = opacity;
             Player.audioOutputMode = VideoAudioOutputMode.None;

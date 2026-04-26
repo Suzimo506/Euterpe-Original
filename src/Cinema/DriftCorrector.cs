@@ -40,7 +40,8 @@ namespace Euterpe.Cinema
         internal static void Stop()
         {
             _isRunning = false;
-            if (CinemaManager.Player is not null) CinemaManager.Player.playbackSpeed = _originalPlaybackSpeed;
+            if (CinemaManager.Player != null && CinemaManager.Player.Pointer != IntPtr.Zero) 
+                CinemaManager.Player.playbackSpeed = _originalPlaybackSpeed;
         }
 
         internal static void Run()
@@ -83,7 +84,7 @@ namespace Euterpe.Cinema
         internal static void LateUpdate()
         {
             if (!_isRunning) return;
-            if (CinemaManager.Player is null || Math.Abs(CinemaManager.Player.time - _lastUpdateTime) < 0.000001) return;
+            if (CinemaManager.Player == null || CinemaManager.Player.Pointer == IntPtr.Zero || Math.Abs(CinemaManager.Player.time - _lastUpdateTime) < 0.000001) return;
             if (CinemaManager.Player.time >= CinemaManager.Player.length)
             {
                 Stop();

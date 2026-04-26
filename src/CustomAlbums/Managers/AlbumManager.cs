@@ -119,7 +119,14 @@ namespace Euterpe.CustomAlbums.Managers
 
         public static Album GetByUid(string uid)
         {
-            return LoadedAlbums.FirstOrDefault(album => album.Value.Index == uid[4..].ParseAsInt()).Value;
+            if (string.IsNullOrEmpty(uid) || !uid.StartsWith($"{Uid}-")) return null;
+            
+            var indexPart = uid[4..];
+            if (Formatting.TryParseAsInt(indexPart, out var index))
+            {
+                return LoadedAlbums.FirstOrDefault(album => album.Value.Index == index).Value;
+            }
+            return null;
         }
         public static string GetAlbumNameFromUid(string uid)
         {
@@ -145,3 +152,4 @@ namespace Euterpe.CustomAlbums.Managers
         }
     }
 }
+

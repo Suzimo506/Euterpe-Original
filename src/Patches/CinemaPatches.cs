@@ -25,15 +25,7 @@ namespace Euterpe.Patches
     {
         private static void Prefix()
         {
-            DriftCorrector.Stop();
-
-            if (CinemaManager.Player != null && CinemaManager.Player.gameObject != null)
-            {
-                CinemaManager.Player.gameObject.SetActive(false);
-                CinemaManager.Player = null;
-            }
-            CinemaManager.GameStarted = false;
-            CinemaManager.Christmas = false;
+            CinemaManager.Clear();
             
             // Restore main camera flags just in case
             if (Camera.main != null)
@@ -88,12 +80,13 @@ namespace Euterpe.Patches
             var cinemaInfo = new CinemaInfo(currentAlbum);
             if (!cinemaInfo.Enabled) return;
 
-            if (LastMusicUid != musicUid)
+            var videoPath = Application.dataPath + "/cinema.mp4";
+            if (LastMusicUid != musicUid || !File.Exists(videoPath))
             {
                 var videoBytes = cinemaInfo.GetVideo();
                 if (videoBytes != null)
                 {
-                    File.WriteAllBytes(Application.dataPath + "/cinema.mp4", videoBytes);
+                    File.WriteAllBytes(videoPath, videoBytes);
                 }
                 LastMusicUid = musicUid;
             }
