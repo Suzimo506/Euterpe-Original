@@ -170,7 +170,12 @@ namespace Euterpe.CustomAlbums.Data
             /// <summary>
             ///     This channel is used for scroll speed changes.
             /// </summary>
-            SpScroll = 512
+            SpScroll = 512,
+
+            /// <summary>
+            ///     This channel is used for Player 2 notes in Double Play (Tag Mode).
+            /// </summary>
+            SpDouble = 1024
         }
 
         public static readonly Dictionary<string, ChannelType> Channels = new()
@@ -182,21 +187,21 @@ namespace Euterpe.CustomAlbums.Data
             ["15"] = ChannelType.Event,
             ["16"] = ChannelType.Event,
             ["18"] = ChannelType.Event,
-            ["11"] = ChannelType.Air | ChannelType.Event,
+            ["11"] = ChannelType.Air | ChannelType.Event, // | ChannelType.SpDouble,
             ["13"] = ChannelType.Air | ChannelType.Event,
-            ["31"] = ChannelType.Air | ChannelType.Event | ChannelType.SpBlood,
+            ["31"] = ChannelType.Air | ChannelType.Event | ChannelType.SpBlood, // | ChannelType.SpDouble,
             ["33"] = ChannelType.Air | ChannelType.Event | ChannelType.SpBlood,
-            ["51"] = ChannelType.Air | ChannelType.Event,
+            ["51"] = ChannelType.Air | ChannelType.Event, // | ChannelType.SpDouble,
             ["53"] = ChannelType.Air | ChannelType.Event,
-            ["D1"] = ChannelType.Air | ChannelType.Event | ChannelType.SpTapHolds,
+            ["D1"] = ChannelType.Air | ChannelType.Event | ChannelType.SpTapHolds, // | ChannelType.SpDouble,
             ["D3"] = ChannelType.Air | ChannelType.Event | ChannelType.SpTapHolds,
-            ["12"] = ChannelType.Ground | ChannelType.Event,
+            ["12"] = ChannelType.Ground | ChannelType.Event, // | ChannelType.SpDouble,
             ["14"] = ChannelType.Ground | ChannelType.Event,
-            ["32"] = ChannelType.Ground | ChannelType.Event | ChannelType.SpBlood,
+            ["32"] = ChannelType.Ground | ChannelType.Event | ChannelType.SpBlood, // | ChannelType.SpDouble,
             ["34"] = ChannelType.Ground | ChannelType.Event | ChannelType.SpBlood,
-            ["52"] = ChannelType.Ground | ChannelType.Event,
+            ["52"] = ChannelType.Ground | ChannelType.Event, // | ChannelType.SpDouble,
             ["54"] = ChannelType.Ground | ChannelType.Event,
-            ["D2"] = ChannelType.Ground | ChannelType.Event | ChannelType.SpTapHolds,
+            ["D2"] = ChannelType.Ground | ChannelType.Event | ChannelType.SpTapHolds, // | ChannelType.SpDouble,
             ["D4"] = ChannelType.Ground | ChannelType.Event | ChannelType.SpTapHolds,
             ["SC"] = ChannelType.SpScroll
         };
@@ -511,7 +516,8 @@ namespace Euterpe.CustomAlbums.Data
                     ["note_uid"] = configData.uid,
                     ["length"] = holdLength,
                     ["pathway"] = pathway,
-                    ["blood"] = !isHold && channelType.HasFlag(ChannelType.SpBlood)
+                    ["blood"] = !isHold && channelType.HasFlag(ChannelType.SpBlood),
+                    // TODO: ["is_double"] = channelType.HasFlag(ChannelType.SpDouble) || bmsKey == "0H"
                 });
             }
 

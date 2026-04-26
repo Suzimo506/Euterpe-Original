@@ -309,6 +309,15 @@ namespace Euterpe.CustomAlbums
                 if (NoteData.TryGetValue(newNote.configData.note_uid, out var newNoteData))
                     newNote.noteData = newNoteData;
 
+                // TODO: Set double flag for Tag Mode
+                /* 
+                if (node["is_double"]?.GetValue<bool>() ?? false)
+                    newNote.isDouble = true;
+                */
+
+                // DEBUG: Auto-split for testing if no double notes are defined
+                //if (newNote.objId % 2 == 0) newNote.isDouble = true;
+
                 MusicDataManager.Add(newNote);
 
                 // Create ticks for hold notes. If it isn't a hold note, there is no need to continue.
