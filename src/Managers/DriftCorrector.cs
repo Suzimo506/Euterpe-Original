@@ -3,7 +3,7 @@ using System.Linq;
 using Il2CppFormulaBase;
 using UnityEngine;
 
-namespace Euterpe.Cinema
+namespace Euterpe.Managers
 {
     internal static class DriftCorrector
     {

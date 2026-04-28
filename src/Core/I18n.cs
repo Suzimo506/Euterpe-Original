@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using MelonLoader;
 
-namespace Euterpe
+namespace Euterpe.Core
 {
     /// <summary>
     /// Euterpe 多语言框架 (i18n)

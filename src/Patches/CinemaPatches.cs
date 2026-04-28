@@ -5,7 +5,8 @@ using Il2Cpp;
 using Il2CppFormulaBase;
 using Il2CppGameLogic;
 using UnityEngine;
-using Euterpe.Cinema;
+using Euterpe.Managers;
+using Euterpe.Core;
 using Euterpe.CustomAlbums.Managers;
 
 namespace Euterpe.Patches

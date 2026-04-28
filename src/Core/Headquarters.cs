@@ -11,7 +11,7 @@ using Il2CppAssets.Scripts.Common;
 using Il2CppNewtonsoft.Json.Linq;
 using Euterpe.CustomAlbums.Managers;
 
-namespace Euterpe
+namespace Euterpe.Core
 {
     public class Headquarters
     {

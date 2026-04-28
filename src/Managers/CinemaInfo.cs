@@ -7,7 +7,7 @@ using Euterpe.CustomAlbums.Data;
 using Euterpe.CustomAlbums.Utilities;
 using Il2CppAssets.Scripts.Database;
 
-namespace Euterpe.Cinema
+namespace Euterpe.Managers
 {
     public class CinemaInfo
     {

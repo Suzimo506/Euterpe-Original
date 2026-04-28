@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Video;
 using Object = UnityEngine.Object;
 
-namespace Euterpe.Cinema
+namespace Euterpe.Managers
 {
     internal static class CinemaManager
     {

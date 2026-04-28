@@ -11,10 +11,10 @@ using System.Collections;
 using Euterpe.CustomAlbums;
 using Euterpe.CustomAlbums.Managers;
 using Euterpe.CustomAlbums.Patches;
-using Euterpe.Cinema;
+using Euterpe.Managers;
 using static Euterpe.CustomAlbums.Patches.AnimatedCoverPatch;
 
-namespace Euterpe
+namespace Euterpe.Core
 {
     public class ModManager : MelonMod
     {
