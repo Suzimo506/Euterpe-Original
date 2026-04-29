@@ -141,14 +141,9 @@ namespace Euterpe.Patches
         /// </summary>
         internal static void ShowEuterpeProfilePopup()
         {
-            // Use a no-op confirm action; we build our own buttons
-            System.Action onConfirm = () => { };
-            var il2CppConfirm = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(onConfirm);
-
-            CommonMessageBox.ShowConfirm(" ", il2CppConfirm, false);
-
-            var messageBox = CommonMessageBox.s_Instance;
+            var messageBox = Euterpe.Core.UIUtils.CreateIsolatedBox("ModEuterpeSettingsBox");
             if (messageBox == null) return;
+            messageBox.gameObject.SetActive(true);
 
             try
             {

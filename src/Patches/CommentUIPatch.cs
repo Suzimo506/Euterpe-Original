@@ -490,13 +490,11 @@ namespace Euterpe.Patches
 
         private static void ShowAvatarPopup(Sprite avatarSprite, string userName)
         {
-            System.Action onConfirm = () => { };
-            var il2CppConfirm = DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(onConfirm);
-
-            CommonMessageBox.ShowConfirm(" ", il2CppConfirm, false);
-
-            var messageBox = CommonMessageBox.s_Instance;
-            if (messageBox == null) return;
+            var boxScript = Euterpe.Core.UIUtils.CreateIsolatedBox("ModCommentAvatarBox");
+            if (boxScript == null) return;
+            
+            var messageBox = boxScript;
+            messageBox.gameObject.SetActive(true);
 
             try
             {
