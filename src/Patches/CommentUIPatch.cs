@@ -4,8 +4,8 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
+using Il2CppUI.Controls;
 using Il2CppAssets.Scripts.UI.Panels;
-using Il2CppUI.Controls; 
 using Il2CppInterop.Runtime;
 using Il2Cpp;
 using Il2CppAssets.Scripts.Database;
@@ -504,6 +504,7 @@ namespace Euterpe.Patches
             var messageBox = boxScript;
             var deadBox = messageBox.gameObject;
             _currentAvatarPopup = deadBox;
+            Euterpe.Core.UIUtils.ActivePopup = deadBox;
             deadBox.SetActive(true);
 
             try
@@ -596,39 +597,10 @@ namespace Euterpe.Patches
 
                 contentObj.transform.SetAsLastSibling();
 
-                // Add a Close Button for the avatar popup
-                var btnObj = new GameObject("BtnClose");
-                btnObj.transform.SetParent(contentObj.transform, false);
-                var btnRect = btnObj.AddComponent<RectTransform>();
-                btnRect.anchorMin = new Vector2(0.5f, 0f);
-                btnRect.anchorMax = new Vector2(0.5f, 0f);
-                btnRect.pivot = new Vector2(0.5f, 0f);
-                btnRect.sizeDelta = new Vector2(160f, 50f);
-                btnRect.anchoredPosition = new Vector2(0f, 40f);
+                contentObj.transform.SetAsLastSibling();
 
-                var btnImg = btnObj.AddComponent<Image>();
-                btnImg.color = new Color(0.3f, 0.5f, 1f, 0.9f);
-                btnImg.type = Image.Type.Sliced;
-
-                var btnTxtObj = new GameObject("Label");
-                btnTxtObj.transform.SetParent(btnObj.transform, false);
-                var btnTxt = btnTxtObj.AddComponent<Text>();
-                if (popupTextTemplate != null) { btnTxt.font = popupTextTemplate.font; btnTxt.material = popupTextTemplate.material; }
-                btnTxt.text = "返回";
-                btnTxt.fontSize = 24;
-                btnTxt.color = Color.white;
-                btnTxt.alignment = TextAnchor.MiddleCenter;
-                var btnTxtRect = btnTxt.rectTransform;
-                btnTxtRect.anchorMin = Vector2.zero; btnTxtRect.anchorMax = Vector2.one;
-                btnTxtRect.offsetMin = btnTxtRect.offsetMax = Vector2.zero;
-
-                var btn = btnObj.AddComponent<Button>();
-                btn.targetGraphic = btnImg;
-                btn.onClick.AddListener((UnityAction)new Action(() => {
-                    Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
-                    UnityEngine.Object.Destroy(deadBox);
-                    _currentAvatarPopup = null;
-                }));
+                contentObj.transform.SetAsLastSibling();
+                messageBox.ForceRebuildBtnLayouts();
 
                 messageBox.ForceRebuildBtnLayouts();
             }

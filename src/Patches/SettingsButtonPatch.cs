@@ -155,6 +155,7 @@ namespace Euterpe.Patches
             var messageBox = boxScript;
             var deadBox = messageBox.gameObject;
             _currentSettingsPopup = deadBox;
+            Euterpe.Core.UIUtils.ActivePopup = deadBox;
             deadBox.SetActive(true);
 
             try
@@ -265,6 +266,7 @@ namespace Euterpe.Patches
 
                 CreatePopupActionButton(bottomBar.transform, "BtnCancel", "取消", new Color(0.95f, 0.3f, 0.5f, 1f), "ESC", fontTemplate, () => {
                     Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
+                    Euterpe.Core.UIUtils.ActivePopup = null;
                     UnityEngine.Object.Destroy(deadBox);
                     _currentSettingsPopup = null;
                 });

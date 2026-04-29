@@ -129,6 +129,17 @@ namespace Euterpe.Core
 
         public override void OnUpdate()
         {
+            // Global ESC key handler for mod popups
+            if (UIUtils.IsAnyModUIOpen && Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (UIUtils.ActivePopup != null)
+                {
+                    UIUtils.IsAnyModUIOpen = false;
+                    UnityEngine.Object.Destroy(UIUtils.ActivePopup);
+                    UIUtils.ActivePopup = null;
+                }
+            }
+
             // CustomAlbums: Drive animated cover frame updates
             MusicStageCellPatch.AnimateCoversUpdate();
 
