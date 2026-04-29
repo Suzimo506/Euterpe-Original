@@ -139,11 +139,23 @@ namespace Euterpe.Patches
         /// Restored Custom Popup Implementation from historical version.
         /// Builds a rich UI inside the game's CommonMessageBox.
         /// </summary>
+        private static GameObject _currentSettingsPopup;
+
         internal static void ShowEuterpeProfilePopup()
         {
-            var messageBox = Euterpe.Core.UIUtils.CreateIsolatedBox("ModEuterpeSettingsBox");
-            if (messageBox == null) return;
-            messageBox.gameObject.SetActive(true);
+            if (_currentSettingsPopup != null) UnityEngine.Object.Destroy(_currentSettingsPopup);
+
+            Euterpe.Core.UIUtils.IsAnyModUIOpen = true; // Signal UI lock
+            var boxScript = Euterpe.Core.UIUtils.CreateIsolatedBox("ModEuterpeSettingsBox");
+            if (boxScript == null)
+            {
+                Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
+                return;
+            }
+            var messageBox = boxScript;
+            var deadBox = messageBox.gameObject;
+            _currentSettingsPopup = deadBox;
+            deadBox.SetActive(true);
 
             try
             {
@@ -252,7 +264,9 @@ namespace Euterpe.Patches
                 hlg.childAlignment = TextAnchor.MiddleCenter;
 
                 CreatePopupActionButton(bottomBar.transform, "BtnCancel", "取消", new Color(0.95f, 0.3f, 0.5f, 1f), "ESC", fontTemplate, () => {
-                    CommonMessageBox.s_Instance?.btnDefaultClose?.onClick.Invoke();
+                    Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
+                    UnityEngine.Object.Destroy(deadBox);
+                    _currentSettingsPopup = null;
                 });
                 CreatePopupActionButton(bottomBar.transform, "BtnCopyUID", "复制 UID", new Color(0f, 0.8f, 0.9f, 1f), "Space", fontTemplate, () => {
                     Il2CppAssets.Scripts.UI.Controls.ShowText.ShowInfo("UID 已复制！");
@@ -289,7 +303,9 @@ namespace Euterpe.Patches
             if (fontTemplate != null) { txt.font = fontTemplate.font; txt.material = fontTemplate.material; }
             txt.text = label; txt.fontSize = 18; txt.color = Color.white; txt.alignment = TextAnchor.MiddleCenter;
             var txtRect = txt.rectTransform; txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = txtRect.offsetMax = Vector2.zero;
-            var btn = obj.AddComponent<Button>(); btn.onClick.AddListener((UnityAction)onClick);
+            var btn = obj.AddComponent<Button>(); 
+            btn.targetGraphic = img;
+            btn.onClick.AddListener((UnityAction)onClick);
             return obj;
         }
 
@@ -303,7 +319,9 @@ namespace Euterpe.Patches
             if (fontTemplate != null) { txt.font = fontTemplate.font; txt.material = fontTemplate.material; }
             txt.text = label; txt.fontSize = 22; txt.color = Color.white; txt.alignment = TextAnchor.MiddleCenter;
             var txtRect = txt.rectTransform; txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = txtRect.offsetMax = Vector2.zero;
-            var btn = obj.AddComponent<Button>(); btn.onClick.AddListener((UnityAction)onClick);
+            var btn = obj.AddComponent<Button>(); 
+            btn.targetGraphic = img;
+            btn.onClick.AddListener((UnityAction)onClick);
             return obj;
         }
 

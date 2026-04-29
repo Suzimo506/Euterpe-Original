@@ -488,13 +488,23 @@ namespace Euterpe.Patches
             return text;
         }
 
+        private static GameObject _currentAvatarPopup;
+
         private static void ShowAvatarPopup(Sprite avatarSprite, string userName)
         {
+            if (_currentAvatarPopup != null) UnityEngine.Object.Destroy(_currentAvatarPopup);
+
+            Euterpe.Core.UIUtils.IsAnyModUIOpen = true; // Signal UI lock
             var boxScript = Euterpe.Core.UIUtils.CreateIsolatedBox("ModCommentAvatarBox");
-            if (boxScript == null) return;
-            
+            if (boxScript == null)
+            {
+                Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
+                return;
+            }
             var messageBox = boxScript;
-            messageBox.gameObject.SetActive(true);
+            var deadBox = messageBox.gameObject;
+            _currentAvatarPopup = deadBox;
+            deadBox.SetActive(true);
 
             try
             {
@@ -585,11 +595,49 @@ namespace Euterpe.Patches
                 placeholderRect.anchoredPosition = new Vector2(0f, 42f);
 
                 contentObj.transform.SetAsLastSibling();
+
+                // Add a Close Button for the avatar popup
+                var btnObj = new GameObject("BtnClose");
+                btnObj.transform.SetParent(contentObj.transform, false);
+                var btnRect = btnObj.AddComponent<RectTransform>();
+                btnRect.anchorMin = new Vector2(0.5f, 0f);
+                btnRect.anchorMax = new Vector2(0.5f, 0f);
+                btnRect.pivot = new Vector2(0.5f, 0f);
+                btnRect.sizeDelta = new Vector2(160f, 50f);
+                btnRect.anchoredPosition = new Vector2(0f, 40f);
+
+                var btnImg = btnObj.AddComponent<Image>();
+                btnImg.color = new Color(0.3f, 0.5f, 1f, 0.9f);
+                btnImg.type = Image.Type.Sliced;
+
+                var btnTxtObj = new GameObject("Label");
+                btnTxtObj.transform.SetParent(btnObj.transform, false);
+                var btnTxt = btnTxtObj.AddComponent<Text>();
+                if (popupTextTemplate != null) { btnTxt.font = popupTextTemplate.font; btnTxt.material = popupTextTemplate.material; }
+                btnTxt.text = "返回";
+                btnTxt.fontSize = 24;
+                btnTxt.color = Color.white;
+                btnTxt.alignment = TextAnchor.MiddleCenter;
+                var btnTxtRect = btnTxt.rectTransform;
+                btnTxtRect.anchorMin = Vector2.zero; btnTxtRect.anchorMax = Vector2.one;
+                btnTxtRect.offsetMin = btnTxtRect.offsetMax = Vector2.zero;
+
+                var btn = btnObj.AddComponent<Button>();
+                btn.targetGraphic = btnImg;
+                btn.onClick.AddListener((UnityAction)new Action(() => {
+                    Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
+                    UnityEngine.Object.Destroy(deadBox);
+                    _currentAvatarPopup = null;
+                }));
+
                 messageBox.ForceRebuildBtnLayouts();
             }
             catch (Exception ex)
             {
                 MelonLogger.Warning($"[Euterpe] Failed to configure avatar popup: {ex.Message}");
+                Euterpe.Core.UIUtils.IsAnyModUIOpen = false;
+                if (_currentAvatarPopup != null) UnityEngine.Object.Destroy(_currentAvatarPopup);
+                _currentAvatarPopup = null;
             }
         }
 

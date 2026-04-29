@@ -331,7 +331,11 @@ namespace Euterpe.CustomAlbums.Patches
             // Allow original LoadFromName to run with LocalizationSettings
             if (assetName is "LocalizationSettings") return assetPtr;
 
-            var language = SingletonScriptableObject<LocalizationSettings>.instance.GetActiveOption("Language");
+            // Ensure LocalizationSettings is available
+            var locInstance = SingletonScriptableObject<LocalizationSettings>.instance;
+            if (locInstance == null) return assetPtr;
+
+            var language = locInstance.GetActiveOption("Language");
 
             // Programmatically alters the asset name to remove the language if the language exists 
             var handledAssetName = assetName.StartsWith("albums_") ? "albums_" : assetName;
