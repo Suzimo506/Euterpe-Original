@@ -426,9 +426,12 @@ namespace Euterpe.Patches
             labelRect.offsetMin = Vector2.zero;
             labelRect.offsetMax = Vector2.zero;
 
-            var txt = templateText != null
-                ? GameObject.Instantiate(templateText, labelObj.transform)
-                : labelObj.AddComponent<Text>();
+            var txt = labelObj.AddComponent<Text>();
+            if (templateText != null)
+            {
+                txt.font = templateText.font;
+                txt.material = templateText.material;
+            }
             txt.transform.SetParent(labelObj.transform, false);
             txt.rectTransform.anchorMin = Vector2.zero;
             txt.rectTransform.anchorMax = Vector2.one;
@@ -1022,16 +1025,17 @@ namespace Euterpe.Patches
                                             ShowAvatarPopup(avatarSprite, avatarName);
                                         }));
                                         
-                                        var textObj = GameObject.Instantiate(titleTextObj.gameObject, itemObj.transform);
-                                        textObj.name = "CommentText";
+                                        var textObj = new GameObject("CommentText");
+                                        textObj.transform.SetParent(itemObj.transform, false);
+                                        var txt = textObj.AddComponent<Text>();
+                                        var templateTextComp = titleTextObj.GetComponent<Text>();
+                                        if (templateTextComp != null)
+                                        {
+                                            txt.font = templateTextComp.font;
+                                            txt.material = templateTextComp.material;
+                                        }
                                         var textRect = textObj.GetComponent<RectTransform>();
                                         textRect.sizeDelta = new Vector2(640, 60); // Give text more width
-                                        
-                                        // Destroy layout elements on cloned text to prevent nested layout issues
-                                        var clonedLayout = textObj.GetComponent<LayoutElement>();
-                                        if (clonedLayout != null) GameObject.DestroyImmediate(clonedLayout);
-                                        
-                                        var txt = textObj.GetComponent<Text>();
                                         if (j == 3) {
                                             txt.text = $"这是预览{j}：这是一个非常非常非常非常非常非常非常非常非常非常长长长长长长长长长长的测试评论，用来看看多行文本换行以及自适应高度的效果是不是完美的！";
                                         } else {

@@ -13,6 +13,7 @@ using Euterpe.CustomAlbums.Managers;
 using Euterpe.CustomAlbums.Patches;
 using Euterpe.Managers;
 using static Euterpe.CustomAlbums.Patches.AnimatedCoverPatch;
+using Il2Cpp;
 
 namespace Euterpe.Core
 {
@@ -21,6 +22,8 @@ namespace Euterpe.Core
         // ----- Local Preferences Configuration -----
         private static MelonPreferences_Category _configCategory;
         public static MelonPreferences_Entry<bool> EnableUpdatePopup;
+        public static MelonPreferences_Entry<bool> EnableCinema;
+        public static MelonPreferences_Entry<KeyCode> CinemaToggleKey;
 
         private static System.Action _onConfirmAction;
         private static System.Action _onCancelAction;
@@ -44,6 +47,8 @@ namespace Euterpe.Core
             // Persist configuration via MelonLoader standards.
             _configCategory = MelonPreferences.CreateCategory("Euterpe");
             EnableUpdatePopup = _configCategory.CreateEntry<bool>("EnableAutoUpdateCheck", true);
+            EnableCinema = _configCategory.CreateEntry<bool>("EnableCinema", true, "Enable Cinema Mode");
+            CinemaToggleKey = _configCategory.CreateEntry<KeyCode>("CinemaToggleKey", KeyCode.C, "Cinema Toggle Key");
 
             // ===== CustomAlbums Initialization Pipeline =====
             if (!Directory.Exists(AlbumManager.SearchPath)) Directory.CreateDirectory(AlbumManager.SearchPath);
@@ -162,6 +167,23 @@ namespace Euterpe.Core
                     {
                         var cancelBtn = CommonMessageBox.s_Instance.m_BtnLayoutRects[1].GetComponent<UnityEngine.UI.Button>();
                         if (cancelBtn != null) cancelBtn.onClick.Invoke();
+                    }
+                }
+            }
+
+            // Cinema Toggle Hotkey
+            if (Input.GetKeyDown(CinemaToggleKey.Value))
+            {
+                var inputManager = Il2CppAssets.Scripts.PeroTools.Managers.InputManager.instance;
+                if (inputManager == null || !inputManager.isStopKeyAction)
+                {
+                    var pnlPreparation = UnityEngine.Object.FindObjectOfType<PnlPreparation>();
+                    if (pnlPreparation != null && pnlPreparation.gameObject.activeInHierarchy)
+                    {
+                        EnableCinema.Value = !EnableCinema.Value;
+                        _configCategory.SaveToFile();
+                        string status = I18n.Get(EnableCinema.Value ? "cinema.on" : "cinema.off");
+                        Il2CppAssets.Scripts.UI.Controls.ShowText.ShowInfo(I18n.GetFormatted("cinema.toggled", status));
                     }
                 }
             }

@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Euterpe.CustomAlbums.Data;
 using Euterpe.CustomAlbums.Utilities;
 using Il2CppAssets.Scripts.Database;
+using Euterpe.Core;
 
 namespace Euterpe.Managers
 {
@@ -37,7 +38,8 @@ namespace Euterpe.Managers
 
         public float Opacity { get; private set; }
 
-        public bool Enabled => !string.IsNullOrEmpty(_fileName) &&
+        public bool Enabled => ModManager.EnableCinema.Value &&
+                               !string.IsNullOrEmpty(_fileName) &&
                                _activatedDifficulties.Contains(GlobalDataBase.s_DbBattleStage.selectedDifficulty);
 
         public byte[] GetVideo()

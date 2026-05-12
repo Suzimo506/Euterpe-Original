@@ -249,6 +249,31 @@ namespace Euterpe.Core
                 ja:   "ランキングの読み込みに失敗しました。",
                 ko:   "리더보드 로딩에 실패했습니다."
             );
+
+            // ---------- 视频背景 (Cinema) ----------
+            Register("cinema.toggled",
+                en:   "Cinema: {0}",
+                zhCn: "视频播放: {0}",
+                zhTw: "影片播放: {0}",
+                ja:   "シネマ: {0}",
+                ko:   "시네마: {0}"
+            );
+
+            Register("cinema.on",
+                en:   "ON",
+                zhCn: "已开启",
+                zhTw: "已開啟",
+                ja:   "オン",
+                ko:   "켜짐"
+            );
+
+            Register("cinema.off",
+                en:   "OFF",
+                zhCn: "已关闭",
+                zhTw: "已關閉",
+                ja:   "オフ",
+                ko:   "꺼짐"
+            );
         }
     }
 }
